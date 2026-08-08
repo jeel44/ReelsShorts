@@ -1,3 +1,66 @@
 <resources>
     <string name="app_name">Free Drama</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_playback">Playback</string>
+    <string name="settings_auto_play">Auto Play</string>
+    <string name="settings_auto_next">Auto Next Episode</string>
+    <string name="settings_video_quality">Video Quality</string>
+    <string name="settings_data_storage">Data &amp; Storage</string>
+    <string name="settings_data_saver">Data Saver</string>
+    <string name="settings_wifi_only">WiFi Only Downloads</string>
+    <string name="settings_download_quality">Download Quality</string>
+    <string name="settings_clear_cache">Clear Cache</string>
+    <string name="settings_used">Used: %s</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_likes">Likes</string>
+    <string name="settings_comments">Comments</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_accent_color">Accent Color</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_privacy">Privacy</string>
+    <string name="settings_privacy_policy">Privacy Policy</string>
+    <string name="settings_terms">Terms of Service</string>
+    <string name="settings_about">About</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_rate_app">Rate App</string>
+    <string name="settings_share_app">Share App</string>
+    <string name="settings_share_app_text">Check out Free Drama! Download here: https://play.google.com/store/apps/details?id=%s</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_cancel">Cancel</string>
+    <string name="dialog_clear">Clear</string>
+    <string name="dialog_confirm_clear_cache">This will free up %s. Continue?</string>
+
+    <!-- Video Player -->
+    <string name="player_speed_2x">2× Speed</string>
+
+    <!-- Interaction -->
+    <string name="comment_placeholder">Add a comment&#8230;</string>
+    <string name="comments_count">%d comments</string>
+    <string name="share_to">Share to</string>
+    <string name="copy_link">Copy Link</string>
+    <string name="link_copied">Link Copied</string>
+    <string name="more">More</string>
+
+    <!-- Category Landing -->
+    <string name="category_featured">FEATURED</string>
+    <string name="category_continue">Continue Watching</string>
+    <string name="category_trending">Trending Now</string>
+    <string name="category_new">New Releases</string>
+    <string name="category_popular">Most Popular</string>
+    <string name="category_recommended">Recommended For You</string>
+    <string name="category_episode_progress">Episode %1$d / %2$d</string>
+
+    <!-- Rewards Ads -->
+    <string name="rewards_watch_earn">Watch &amp; Earn</string>
+    <string name="rewards_watch_ad">Watch Ad</string>
+    <string name="rewards_watch_subtitle">Watch a rewarded ad</string>
+    <string name="rewards_ad_reward">+50 Coins</string>
+    <string name="rewards_ads_coming_soon">Rewarded ads coming soon</string>
+    <string name="rewards_coming_soon">Coming Soon</string>
+    <string name="rewards_out_of_coins">Out of Coins</string>
+    <string name="rewards_out_of_coins_desc">Watch a rewarded ad to get more coins and continue watching.</string>
 </resources>

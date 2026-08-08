@@ -15,7 +15,7 @@ data class Video(
     val likeCount: String,
     val commentCount: String,
     val shareCount: String,
-    val giftCount: String,
-    val coinCount: String,
+    val viewCount: String,
+    val videoUrl: String,
     val thumbnailGradient: List<Color>,
 )
