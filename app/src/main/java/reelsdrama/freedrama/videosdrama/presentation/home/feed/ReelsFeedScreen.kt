@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import reelsdrama.freedrama.videosdrama.R
 import reelsdrama.freedrama.videosdrama.core.player.VideoPlayerManager
+import reelsdrama.freedrama.videosdrama.presentation.home.feed.components.AdConfirmationDialog
 import reelsdrama.freedrama.videosdrama.presentation.home.feed.components.VerticalReelsPager
 import kotlinx.coroutines.launch
 
@@ -135,9 +136,7 @@ fun ReelsFeedScreen(
                     Spacer(modifier = Modifier.height(24.dp))
                     Button(
                         onClick = {
-                            scope.launch {
-                                snackbarHostState.showSnackbar(adsComingSoon)
-                            }
+                            onEvent(FeedEvent.ToggleAdConfirmation(true))
                         },
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -145,6 +144,20 @@ fun ReelsFeedScreen(
                     }
                 }
             }
+        }
+        
+        if (uiState.showAdConfirmation) {
+            AdConfirmationDialog(
+                onConfirm = {
+                    onEvent(FeedEvent.ToggleAdConfirmation(false))
+                    scope.launch {
+                        snackbarHostState.showSnackbar(adsComingSoon)
+                    }
+                },
+                onDismiss = {
+                    onEvent(FeedEvent.ToggleAdConfirmation(false))
+                }
+            )
         }
         
         SnackbarHost(

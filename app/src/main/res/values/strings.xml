@@ -63,4 +63,6 @@
     <string name="rewards_coming_soon">Coming Soon</string>
     <string name="rewards_out_of_coins">Out of Coins</string>
     <string name="rewards_out_of_coins_desc">Watch a rewarded ad to get more coins and continue watching.</string>
+    <string name="rewards_earn_50_coins">Earn 50 Coins</string>
+    <string name="rewards_earn_50_coins_desc">Watch a short rewarded ad and receive 50 coins.</string>
 </resources>

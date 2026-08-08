@@ -9,5 +9,6 @@ data class FeedUiState(
     val isLoading: Boolean = false,
     val categoryId: String? = null,
     val insufficientCoins: Boolean = false,
-    val coinBalance: Int = 0
+    val coinBalance: Int = 0,
+    val showAdConfirmation: Boolean = false
 )

@@ -46,7 +46,7 @@ class FeedViewModel @Inject constructor(
             .onEach { balance ->
                 _uiState.update { it.copy(
                     coinBalance = balance,
-                    insufficientCoins = if (balance > 0) false else it.insufficientCoins
+                    insufficientCoins = balance <= 0
                 ) }
             }
             .launchIn(viewModelScope)
@@ -88,6 +88,9 @@ class FeedViewModel @Inject constructor(
                         }
                     }
                 }
+            }
+            is FeedEvent.ToggleAdConfirmation -> {
+                _uiState.update { it.copy(showAdConfirmation = event.show) }
             }
         }
     }
