@@ -33,7 +33,6 @@ fun ReelCard(
     isTabSelected: Boolean,
     playerManager: VideoPlayerManager,
     likeViewModel: LikeViewModel = hiltViewModel(),
-    onViewComplete: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
@@ -52,7 +51,6 @@ fun ReelCard(
             onDoubleTap = { offset ->
                 likeViewModel.onEvent(LikeButtonEvent.OnDoubleTap(video.id, offset))
             },
-            onViewComplete = onViewComplete,
             modifier = Modifier.fillMaxSize()
         )
 

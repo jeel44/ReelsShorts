@@ -37,7 +37,6 @@ fun VideoPlayer(
     video: Video,
     playerManager: VideoPlayerManager,
     onDoubleTap: (Offset) -> Unit,
-    onViewComplete: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -49,8 +48,6 @@ fun VideoPlayer(
     var isPlaying by remember { mutableStateOf(player.isPlaying) }
     var playbackSpeed by remember { mutableStateOf(PlayerConstants.DEFAULT_SPEED) }
     var progress by remember { mutableStateOf(0f) }
-    var viewTracked by remember { mutableStateOf(false) }
-    var accumulatedPlayTime by remember { mutableLongStateOf(0L) }
 
     // Position tracking for progress bar - Only poll when playing to save CPU/Battery
     LaunchedEffect(player, isPlaying) {
@@ -60,15 +57,6 @@ fun VideoPlayer(
                     progress = player.currentPosition.toFloat() / player.duration
                 }
                 
-                // Track genuine view (accumulate total active playback time)
-                if (!viewTracked) {
-                    accumulatedPlayTime += PlayerConstants.POSITION_POLLING_MS
-                    if (accumulatedPlayTime >= 5000L) {
-                        viewTracked = true
-                        onViewComplete()
-                    }
-                }
-
                 delay(PlayerConstants.POSITION_POLLING_MS)
             }
         }

@@ -11,9 +11,11 @@ interface RewardsRepository {
     fun getCoinBalance(): Flow<Int>
     fun getDailyRewards(): Flow<List<DailyReward>>
     fun getRewardActivities(): Flow<List<RewardActivity>>
+    fun getWatchedReelIds(): Flow<Set<String>>
     
     suspend fun initRewards()
     suspend fun claimDailyReward(): Result<Unit>
     suspend fun addActivity(type: String, amount: Int, description: String)
     suspend fun consumeCoinForReel(videoId: String): Boolean
+    suspend fun markReelAsWatched(videoId: String)
 }

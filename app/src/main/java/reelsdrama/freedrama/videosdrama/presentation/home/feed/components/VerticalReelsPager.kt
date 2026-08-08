@@ -6,8 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,19 +28,37 @@ fun VerticalReelsPager(
     onLoadMore: () -> Unit,
     onEvent: (FeedEvent) -> Unit
 ) {
-    val pagerState = rememberPagerState { videos.size }
+    val pagerState = rememberPagerState(pageCount = { videos.size })
+    
+    // Track the page we are CURRENTLY on to detect successful swipes AWAY.
+    var lastSettledPage by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(pagerState.currentPage, insufficientCoins) {
+    // Playback control and swipe detection
+    LaunchedEffect(pagerState.settledPage, insufficientCoins) {
         if (videos.isNotEmpty()) {
-            val video = videos[pagerState.currentPage]
-            if (insufficientCoins) {
-                playerManager.pause(video.id)
-            } else {
-                playerManager.play(video.id)
+            val currentPage = pagerState.settledPage
+            val video = if (currentPage < videos.size) videos[currentPage] else null
+            
+            if (video != null) {
+                if (insufficientCoins) {
+                    playerManager.pause(video.id)
+                } else {
+                    playerManager.play(video.id)
+                }
+
+                // If we settled on a NEW page, it means the user successfully swiped AWAY from the last one
+                if (currentPage != lastSettledPage) {
+                    if (lastSettledPage >= 0 && lastSettledPage < videos.size) {
+                        val swipedFromVideo = videos[lastSettledPage]
+                        onEvent(FeedEvent.ReelSwiped(swipedFromVideo.id))
+                    }
+                    lastSettledPage = currentPage
+                }
             }
         }
     }
 
+    // Pagination
     LaunchedEffect(pagerState.currentPage) {
         if (pagerState.currentPage >= videos.size - PlayerConstants.RECENT_PAGES_THRESHOLD && videos.isNotEmpty()) {
             onLoadMore()
@@ -57,14 +74,14 @@ fun VerticalReelsPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
             beyondViewportPageCount = 1,
-            userScrollEnabled = !insufficientCoins
+            userScrollEnabled = !insufficientCoins,
+            key = { index -> if (index < videos.size) videos[index].id else index }
         ) { page ->
             val video = videos[page]
             ReelCard(
                 video = video,
-                isTabSelected = true, // Always active now
+                isTabSelected = true,
                 playerManager = playerManager,
-                onViewComplete = { onEvent(FeedEvent.VideoViewed(video.id)) },
                 modifier = Modifier.fillMaxSize()
             )
         }

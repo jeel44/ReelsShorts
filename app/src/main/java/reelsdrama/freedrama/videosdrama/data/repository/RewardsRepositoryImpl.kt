@@ -25,6 +25,7 @@ class RewardsRepositoryImpl @Inject constructor(
         val ACTIVITIES_JSON = stringPreferencesKey("activities_json")
         val WELCOME_BONUS_GRANTED = booleanPreferencesKey("welcome_bonus_granted")
         val CONSUMED_REELS = stringSetPreferencesKey("consumed_reels")
+        val WATCHED_REELS = stringSetPreferencesKey("watched_reels")
     }
 
     private val dailyRewardAmounts = listOf(10, 10, 20, 20, 30, 30, 100)
@@ -63,6 +64,8 @@ class RewardsRepositoryImpl @Inject constructor(
             emptyList()
         }
     }
+
+    override fun getWatchedReelIds(): Flow<Set<String>> = dataStore.data.map { it[PreferencesKeys.WATCHED_REELS] ?: emptySet() }
 
     override suspend fun initRewards() {
         dataStore.edit { prefs ->
@@ -103,6 +106,11 @@ class RewardsRepositoryImpl @Inject constructor(
             val consumedReels = prefs[PreferencesKeys.CONSUMED_REELS] ?: emptySet()
             if (consumedReels.contains(videoId)) {
                 success = true
+                // If it was already consumed, ensure it's marked as watched as well
+                val watchedReels = prefs[PreferencesKeys.WATCHED_REELS] ?: emptySet()
+                if (!watchedReels.contains(videoId)) {
+                    prefs[PreferencesKeys.WATCHED_REELS] = watchedReels + videoId
+                }
                 return@edit
             }
 
@@ -113,6 +121,10 @@ class RewardsRepositoryImpl @Inject constructor(
                 
                 // Mark as consumed
                 prefs[PreferencesKeys.CONSUMED_REELS] = consumedReels + videoId
+                
+                // Mark as watched
+                val watchedReels = prefs[PreferencesKeys.WATCHED_REELS] ?: emptySet()
+                prefs[PreferencesKeys.WATCHED_REELS] = watchedReels + videoId
                 
                 // Add activity
                 val json = prefs[PreferencesKeys.ACTIVITIES_JSON] ?: "[]"
@@ -137,6 +149,15 @@ class RewardsRepositoryImpl @Inject constructor(
             }
         }
         return success
+    }
+
+    override suspend fun markReelAsWatched(videoId: String) {
+        dataStore.edit { prefs ->
+            val watchedReels = prefs[PreferencesKeys.WATCHED_REELS] ?: emptySet()
+            if (!watchedReels.contains(videoId)) {
+                prefs[PreferencesKeys.WATCHED_REELS] = watchedReels + videoId
+            }
+        }
     }
 
     override suspend fun claimDailyReward(): Result<Unit> {

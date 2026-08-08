@@ -7,13 +7,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import reelsdrama.freedrama.videosdrama.core.constants.NetworkConstants
 import reelsdrama.freedrama.videosdrama.core.player.VideoPlayerManager
 import reelsdrama.freedrama.videosdrama.domain.repository.RewardsRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import reelsdrama.freedrama.videosdrama.presentation.home.model.Video
 import javax.inject.Inject
 
 /**
@@ -35,13 +31,18 @@ class FeedViewModel @Inject constructor(
 
     private var currentPage = 0
     private val pageSize = NetworkConstants.PAGE_SIZE
+    private var allFetchedVideos = mutableListOf<Video>()
+
+    // In-memory set to prevent duplicate processing during the active session
+    private val processingVideoIds = mutableSetOf<String>()
 
     init {
+        observeRewardsData()
         loadInitialVideos()
-        observeCoinBalance()
     }
 
-    private fun observeCoinBalance() {
+    private fun observeRewardsData() {
+        // 1. Observe virtual coin balance
         rewardsRepository.getCoinBalance()
             .onEach { balance ->
                 _uiState.update { it.copy(
@@ -50,42 +51,42 @@ class FeedViewModel @Inject constructor(
                 ) }
             }
             .launchIn(viewModelScope)
+
+        // 2. Observe watched reels for metadata
+        rewardsRepository.getWatchedReelIds()
+            .onEach { watchedIds ->
+                _uiState.update { it.copy(watchedVideoIds = watchedIds) }
+            }
+            .launchIn(viewModelScope)
     }
 
     private fun loadInitialVideos() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            
-            val videos = if (categoryId != null) {
-                repository.getCategoryVideos(categoryId, currentPage, pageSize)
-            } else {
-                repository.getForYouVideos(currentPage, pageSize)
-            }
-
-            _uiState.update {
-                it.copy(
-                    videos = videos,
-                    isLoading = false
-                )
-            }
+            fetchMoreUntilUnseenFound()
+            _uiState.update { it.copy(isLoading = false) }
         }
     }
-
-    private val watchedVideoIds = mutableSetOf<String>()
 
     fun onEvent(event: FeedEvent) {
         when (event) {
             is FeedEvent.LoadMoreVideos -> {
                 loadMore()
             }
-            is FeedEvent.VideoViewed -> {
-                if (!watchedVideoIds.contains(event.videoId)) {
-                    watchedVideoIds.add(event.videoId)
+            is FeedEvent.ReelSwiped -> {
+                val videoId = event.fromVideoId
+                val isProcessing = processingVideoIds.contains(videoId)
+                val isWatched = _uiState.value.watchedVideoIds.contains(videoId)
+                
+                // Every successful swipeaway = -1 coin. No watch time requirement.
+                if (!isProcessing && !isWatched) {
+                    processingVideoIds.add(videoId)
                     viewModelScope.launch {
-                        val success = rewardsRepository.consumeCoinForReel(event.videoId)
+                        val success = rewardsRepository.consumeCoinForReel(videoId)
                         if (!success) {
                             _uiState.update { it.copy(insufficientCoins = true) }
                         }
+                        processingVideoIds.remove(videoId)
                     }
                 }
             }
@@ -97,22 +98,41 @@ class FeedViewModel @Inject constructor(
 
     private fun loadMore() {
         if (_uiState.value.isLoading) return
-
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            currentPage++
-            
-            val newVideos = if (categoryId != null) {
+            fetchMoreUntilUnseenFound()
+            _uiState.update { it.copy(isLoading = false) }
+        }
+    }
+
+    private suspend fun fetchMoreUntilUnseenFound() {
+        var attempts = 0
+        val maxAttempts = 5
+        var unseenAdded = 0
+        
+        val watchedIds = rewardsRepository.getWatchedReelIds().first()
+
+        while (unseenAdded < 5 && attempts < maxAttempts) {
+            val fetched = if (categoryId != null) {
                 repository.getCategoryVideos(categoryId, currentPage, pageSize)
             } else {
                 repository.getForYouVideos(currentPage, pageSize)
             }
 
-            _uiState.update {
-                it.copy(
-                    videos = it.videos + newVideos,
-                    isLoading = false
-                )
+            if (fetched.isEmpty()) break
+
+            val newUnseen = fetched.filter { it.id !in watchedIds && !allFetchedVideos.any { v -> v.id == it.id } }
+            
+            allFetchedVideos.addAll(fetched.filter { existing -> !allFetchedVideos.any { it.id == existing.id } })
+            unseenAdded += newUnseen.size
+            
+            currentPage++
+            attempts++
+            
+            if (newUnseen.isNotEmpty()) {
+                _uiState.update { state ->
+                    state.copy(videos = allFetchedVideos.filter { it.id !in watchedIds })
+                }
             }
         }
     }

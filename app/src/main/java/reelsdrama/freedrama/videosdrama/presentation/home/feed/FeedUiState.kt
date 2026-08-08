@@ -6,6 +6,7 @@ import reelsdrama.freedrama.videosdrama.presentation.home.model.Video
 @Immutable
 data class FeedUiState(
     val videos: List<Video> = emptyList(),
+    val watchedVideoIds: Set<String> = emptySet(),
     val isLoading: Boolean = false,
     val categoryId: String? = null,
     val insufficientCoins: Boolean = false,
