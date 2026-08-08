@@ -10,7 +10,7 @@ import reelsdrama.freedrama.videosdrama.core.player.VideoPlayerManager
 
 @Composable
 fun HomeRoute(
-    onSettingsClick: () -> Unit,
+    onCoinClick: () -> Unit,
     viewModel: FeedViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -18,6 +18,6 @@ fun HomeRoute(
         uiState = uiState,
         playerManager = viewModel.playerManager,
         onEvent = viewModel::onEvent,
-        onSettingsClick = onSettingsClick
+        onCoinClick = onCoinClick
     )
 }

@@ -68,8 +68,8 @@ fun MainScreen() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(AppRoute.Home.route) { 
-                HomeRoute(onSettingsClick = {
-                    navController.navigate(AppRoute.Settings.route) {
+                HomeRoute(onCoinClick = {
+                    navController.navigate(AppRoute.Rewards.route) {
                         popUpTo(navController.graph.findStartDestination().id) {
                             saveState = true
                         }
@@ -121,7 +121,7 @@ fun MainScreen() {
                     uiState = uiState,
                     playerManager = viewModel.playerManager,
                     onEvent = viewModel::onEvent,
-                    onSettingsClick = {},
+                    onCoinClick = {},
                     onBackClick = { navController.popBackStack() }
                 )
             }

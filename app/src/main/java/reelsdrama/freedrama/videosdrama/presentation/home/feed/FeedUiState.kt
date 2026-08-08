@@ -10,5 +10,6 @@ data class FeedUiState(
     val selectedTabIndex: Int = 1, // Default to "For You"
     val isLoading: Boolean = false,
     val categoryId: String? = null,
-    val insufficientCoins: Boolean = false
+    val insufficientCoins: Boolean = false,
+    val coinBalance: Int = 0
 )

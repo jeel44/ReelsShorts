@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MonetizationOn
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,7 +35,7 @@ fun ReelsFeedScreen(
     uiState: FeedUiState,
     playerManager: VideoPlayerManager,
     onEvent: (FeedEvent) -> Unit,
-    onSettingsClick: () -> Unit,
+    onCoinClick: () -> Unit,
     modifier: Modifier = Modifier,
     onBackClick: (() -> Unit)? = null
 ) {
@@ -100,18 +99,34 @@ fun ReelsFeedScreen(
                     .padding(top = 16.dp)
             )
 
-            IconButton(
-                onClick = onSettingsClick,
+            // Coin Balance Indicator
+            Surface(
+                onClick = onCoinClick,
+                color = Color.Black.copy(alpha = 0.3f),
+                shape = RoundedCornerShape(20.dp),
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .statusBarsPadding()
-                    .padding(top = 8.dp, end = 8.dp)
+                    .padding(top = 12.dp, end = 16.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Settings",
-                    tint = Color.White
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MonetizationOn,
+                        contentDescription = "Coins",
+                        tint = Color(0xFFF5C542),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "${uiState.coinBalance} Coins",
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         } else {
             // Category View Header (Back Button)

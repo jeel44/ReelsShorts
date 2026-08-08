@@ -65,7 +65,36 @@ class RewardsRepositoryImpl @Inject constructor(
     }
 
     override suspend fun initRewards() {
-// ... existing code
+        dataStore.edit { prefs ->
+            // 1. Check if welcome bonus has already been granted
+            if (prefs[PreferencesKeys.WELCOME_BONUS_GRANTED] == true) return@edit
+
+            // 2. Audit existing state to protect existing users
+            val currentBalance = prefs[PreferencesKeys.COIN_BALANCE] ?: 0
+            val activitiesJson = prefs[PreferencesKeys.ACTIVITIES_JSON] ?: "[]"
+            val hasExistingActivity = activitiesJson != "[]"
+
+            // If user has existing balance or activity, mark as granted but don't add +5
+            if (currentBalance > 0 || hasExistingActivity) {
+                prefs[PreferencesKeys.WELCOME_BONUS_GRANTED] = true
+                return@edit
+            }
+
+            // 3. fresh install flow: Grant Welcome Bonus (+5 Coins)
+            prefs[PreferencesKeys.COIN_BALANCE] = 5
+            
+            val activities = mutableListOf(
+                RewardActivity(
+                    id = UUID.randomUUID().toString(),
+                    timestamp = System.currentTimeMillis(),
+                    type = "Welcome Bonus",
+                    amount = 5,
+                    description = "Welcome Bonus"
+                )
+            )
+            prefs[PreferencesKeys.ACTIVITIES_JSON] = Json.encodeToString(activities)
+            prefs[PreferencesKeys.WELCOME_BONUS_GRANTED] = true
+        }
     }
 
     override suspend fun consumeCoinForReel(videoId: String): Boolean {

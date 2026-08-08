@@ -46,9 +46,10 @@ class FeedViewModel @Inject constructor(
     private fun observeCoinBalance() {
         rewardsRepository.getCoinBalance()
             .onEach { balance ->
-                if (balance > 0) {
-                    _uiState.update { it.copy(insufficientCoins = false) }
-                }
+                _uiState.update { it.copy(
+                    coinBalance = balance,
+                    insufficientCoins = if (balance > 0) false else it.insufficientCoins
+                ) }
             }
             .launchIn(viewModelScope)
     }
