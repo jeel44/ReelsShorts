@@ -5,9 +5,7 @@ import reelsdrama.freedrama.videosdrama.presentation.home.model.Video
 
 @Immutable
 data class FeedUiState(
-    val followingVideos: List<Video> = emptyList(),
-    val forYouVideos: List<Video> = emptyList(),
-    val selectedTabIndex: Int = 1, // Default to "For You"
+    val videos: List<Video> = emptyList(),
     val isLoading: Boolean = false,
     val categoryId: String? = null,
     val insufficientCoins: Boolean = false,

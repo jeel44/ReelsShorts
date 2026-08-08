@@ -1,11 +1,8 @@
 package reelsdrama.freedrama.videosdrama.presentation.home.feed
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -20,16 +17,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import reelsdrama.freedrama.videosdrama.R
 import reelsdrama.freedrama.videosdrama.core.player.VideoPlayerManager
-import reelsdrama.freedrama.videosdrama.presentation.home.feed.components.HomeTopTabs
 import reelsdrama.freedrama.videosdrama.presentation.home.feed.components.VerticalReelsPager
 import kotlinx.coroutines.launch
 
 /**
  * The main container for the Reels Feed.
- * Manages the HorizontalPager for "Following" and "For You" tabs.
+ * Displays a single continuous vertical reels feed.
  * Also supports a single-category view when categoryId is provided.
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ReelsFeedScreen(
     uiState: FeedUiState,
@@ -40,66 +35,25 @@ fun ReelsFeedScreen(
     onBackClick: (() -> Unit)? = null
 ) {
     val isCategoryView = uiState.categoryId != null
-    val tabs = if (isCategoryView) emptyList() else listOf("Following", "For You")
-    val horizontalPagerState = rememberPagerState(
-        initialPage = if (isCategoryView) 0 else uiState.selectedTabIndex
-    ) { if (isCategoryView) 1 else tabs.size }
-    
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val adsComingSoon = stringResource(R.string.rewards_ads_coming_soon)
-
-    LaunchedEffect(uiState.selectedTabIndex) {
-        if (!isCategoryView && horizontalPagerState.currentPage != uiState.selectedTabIndex) {
-            horizontalPagerState.animateScrollToPage(uiState.selectedTabIndex)
-        }
-    }
-
-    LaunchedEffect(horizontalPagerState.currentPage) {
-        if (!isCategoryView) {
-            onEvent(FeedEvent.TabSelected(horizontalPagerState.currentPage))
-        }
-    }
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        HorizontalPager(
-            state = horizontalPagerState,
-            modifier = Modifier.fillMaxSize(),
-            userScrollEnabled = !isCategoryView
-        ) { tabIndex ->
-            val videos = when {
-                isCategoryView -> uiState.forYouVideos
-                tabIndex == 0 -> uiState.followingVideos
-                else -> uiState.forYouVideos
-            }
-            
-            VerticalReelsPager(
-                videos = videos,
-                tabIndex = tabIndex,
-                selectedTabIndex = horizontalPagerState.currentPage,
-                playerManager = playerManager,
-                insufficientCoins = uiState.insufficientCoins,
-                onLoadMore = { onEvent(FeedEvent.LoadMoreVideos(tabIndex)) },
-                onEvent = onEvent
-            )
-        }
+        VerticalReelsPager(
+            videos = uiState.videos,
+            playerManager = playerManager,
+            insufficientCoins = uiState.insufficientCoins,
+            onLoadMore = { onEvent(FeedEvent.LoadMoreVideos) },
+            onEvent = onEvent
+        )
 
         if (!isCategoryView) {
-            HomeTopTabs(
-                tabs = tabs,
-                selectedTabIndex = horizontalPagerState.currentPage,
-                onTabClick = { onEvent(FeedEvent.TabSelected(it)) },
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .statusBarsPadding()
-                    .padding(top = 16.dp)
-            )
-
-            // Coin Balance Indicator
+            // Coin Balance Indicator for Home
             Surface(
                 onClick = onCoinClick,
                 color = Color.Black.copy(alpha = 0.3f),

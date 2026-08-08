@@ -23,11 +23,6 @@ class FakeFeedRepository @Inject constructor() {
         listOf(Color(0xFF200122), Color(0xFF6F0000)),
     )
 
-    suspend fun getFollowingVideos(page: Int, pageSize: Int): List<Video> {
-        delay(NetworkConstants.NETWORK_DELAY_MS)
-        return generateFakeVideos(page, pageSize, "following")
-    }
-
     suspend fun getForYouVideos(page: Int, pageSize: Int): List<Video> {
         delay(NetworkConstants.NETWORK_DELAY_MS)
         return generateFakeVideos(page, pageSize, "foryou")

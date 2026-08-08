@@ -17,12 +17,13 @@ import reelsdrama.freedrama.videosdrama.presentation.home.feed.FeedEvent
 import reelsdrama.freedrama.videosdrama.presentation.home.feed.ReelCard
 import reelsdrama.freedrama.videosdrama.presentation.home.model.Video
 
+/**
+ * Vertical pager for reels. Handles playback orchestration and pagination.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun VerticalReelsPager(
     videos: List<Video>,
-    tabIndex: Int,
-    selectedTabIndex: Int,
     playerManager: VideoPlayerManager,
     insufficientCoins: Boolean,
     onLoadMore: () -> Unit,
@@ -30,8 +31,8 @@ fun VerticalReelsPager(
 ) {
     val pagerState = rememberPagerState { videos.size }
 
-    LaunchedEffect(pagerState.currentPage, selectedTabIndex, insufficientCoins) {
-        if (videos.isNotEmpty() && tabIndex == selectedTabIndex) {
+    LaunchedEffect(pagerState.currentPage, insufficientCoins) {
+        if (videos.isNotEmpty()) {
             val video = videos[pagerState.currentPage]
             if (insufficientCoins) {
                 playerManager.pause(video.id)
@@ -56,12 +57,12 @@ fun VerticalReelsPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
             beyondViewportPageCount = 1,
-            userScrollEnabled = !insufficientCoins // Block scroll if out of coins
+            userScrollEnabled = !insufficientCoins
         ) { page ->
             val video = videos[page]
             ReelCard(
                 video = video,
-                isTabSelected = tabIndex == selectedTabIndex,
+                isTabSelected = true, // Always active now
                 playerManager = playerManager,
                 onViewComplete = { onEvent(FeedEvent.VideoViewed(video.id)) },
                 modifier = Modifier.fillMaxSize()

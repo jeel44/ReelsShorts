@@ -33,9 +33,7 @@ class FeedViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(FeedUiState(categoryId = categoryId))
     val uiState: StateFlow<FeedUiState> = _uiState.asStateFlow()
 
-    private var followingPage = 0
-    private var forYouPage = 0
-    private var categoryPage = 0
+    private var currentPage = 0
     private val pageSize = NetworkConstants.PAGE_SIZE
 
     init {
@@ -58,24 +56,17 @@ class FeedViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             
-            if (categoryId != null) {
-                val videos = repository.getCategoryVideos(categoryId, categoryPage, pageSize)
-                _uiState.update {
-                    it.copy(
-                        forYouVideos = videos, // Reuse forYouVideos for category list
-                        isLoading = false
-                    )
-                }
+            val videos = if (categoryId != null) {
+                repository.getCategoryVideos(categoryId, currentPage, pageSize)
             } else {
-                val following = repository.getFollowingVideos(followingPage, pageSize)
-                val forYou = repository.getForYouVideos(forYouPage, pageSize)
-                _uiState.update {
-                    it.copy(
-                        followingVideos = following,
-                        forYouVideos = forYou,
-                        isLoading = false
-                    )
-                }
+                repository.getForYouVideos(currentPage, pageSize)
+            }
+
+            _uiState.update {
+                it.copy(
+                    videos = videos,
+                    isLoading = false
+                )
             }
         }
     }
@@ -84,11 +75,8 @@ class FeedViewModel @Inject constructor(
 
     fun onEvent(event: FeedEvent) {
         when (event) {
-            is FeedEvent.TabSelected -> {
-                _uiState.update { it.copy(selectedTabIndex = event.index) }
-            }
             is FeedEvent.LoadMoreVideos -> {
-                loadMore(event.tabIndex)
+                loadMore()
             }
             is FeedEvent.VideoViewed -> {
                 if (!watchedVideoIds.contains(event.videoId)) {
@@ -104,41 +92,24 @@ class FeedViewModel @Inject constructor(
         }
     }
 
-    private fun loadMore(tabIndex: Int) {
+    private fun loadMore() {
         if (_uiState.value.isLoading) return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
+            currentPage++
             
-            if (categoryId != null) {
-                categoryPage++
-                val newVideos = repository.getCategoryVideos(categoryId, categoryPage, pageSize)
-                _uiState.update {
-                    it.copy(
-                        forYouVideos = it.forYouVideos + newVideos,
-                        isLoading = false
-                    )
-                }
+            val newVideos = if (categoryId != null) {
+                repository.getCategoryVideos(categoryId, currentPage, pageSize)
             } else {
-                if (tabIndex == 0) {
-                    followingPage++
-                    val newVideos = repository.getFollowingVideos(followingPage, pageSize)
-                    _uiState.update {
-                        it.copy(
-                            followingVideos = it.followingVideos + newVideos,
-                            isLoading = false
-                        )
-                    }
-                } else {
-                    forYouPage++
-                    val newVideos = repository.getForYouVideos(forYouPage, pageSize)
-                    _uiState.update {
-                        it.copy(
-                            forYouVideos = it.forYouVideos + newVideos,
-                            isLoading = false
-                        )
-                    }
-                }
+                repository.getForYouVideos(currentPage, pageSize)
+            }
+
+            _uiState.update {
+                it.copy(
+                    videos = it.videos + newVideos,
+                    isLoading = false
+                )
             }
         }
     }
