@@ -14,14 +14,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import reelsdrama.freedrama.videosdrama.R
 
 /**
- * A UI placeholder card for the future Rewarded Ads feature.
+ * The "Watch & Earn" card on the Rewards screen - shows/hides its rewarded ad button based
+ * on whether an ad is actually loaded and ready to display.
+ *
+ * @param isAdReady Whether a rewarded ad is currently loaded and ready to show. While false,
+ * the button is disabled and shows a loading label instead, since there's no ad to show yet.
  */
 @Composable
 fun RewardedAdPlaceholderCard(
+    isAdReady: Boolean,
     onWatchAdClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -60,26 +64,11 @@ fun RewardedAdPlaceholderCard(
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = stringResource(R.string.rewards_watch_earn),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.rewards_coming_soon),
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            fontSize = 8.sp
-                        )
-                    }
-                }
+                Text(
+                    text = stringResource(R.string.rewards_watch_earn),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
                 Text(
                     text = stringResource(R.string.rewards_watch_subtitle),
                     style = MaterialTheme.typography.bodySmall,
@@ -95,6 +84,7 @@ fun RewardedAdPlaceholderCard(
 
             Button(
                 onClick = onWatchAdClick,
+                enabled = isAdReady,
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
@@ -102,7 +92,11 @@ fun RewardedAdPlaceholderCard(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = stringResource(R.string.rewards_watch_ad),
+                    text = if (isAdReady) {
+                        stringResource(R.string.rewards_watch_ad)
+                    } else {
+                        stringResource(R.string.rewards_ad_loading)
+                    },
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold
                 )

@@ -1,6 +1,7 @@
 package reelsdrama.freedrama.videosdrama.presentation.rewards.state
 
 import androidx.compose.runtime.Immutable
+import reelsdrama.freedrama.videosdrama.core.ads.RewardedAdFeedback
 import reelsdrama.freedrama.videosdrama.domain.model.*
 
 @Immutable
@@ -10,7 +11,9 @@ data class RewardsUiState(
     val activities: List<RewardActivity> = emptyList(),
     val isLoading: Boolean = false,
     val showHistory: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val isRewardedAdReady: Boolean = false,
+    val rewardedAdFeedback: RewardedAdFeedback? = null
 ) {
     // getDailyRewards() guarantees exactly one entry has isToday == true whenever a claim
     // is pending (and wraps back to day 1 once a 7-day cycle completes), so the absence of

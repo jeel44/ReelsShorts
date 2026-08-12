@@ -16,9 +16,14 @@ import reelsdrama.freedrama.videosdrama.R
 
 /**
  * A Material 3 confirmation dialog for watching a rewarded ad.
+ *
+ * @param isAdReady Whether a rewarded ad is currently loaded and ready to show. While false,
+ * the confirm button is disabled and shows a loading label instead, since there's no ad to
+ * show yet.
  */
 @Composable
 fun AdConfirmationDialog(
+    isAdReady: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -47,9 +52,13 @@ fun AdConfirmationDialog(
         confirmButton = {
             Button(
                 onClick = onConfirm,
+                enabled = isAdReady,
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text(stringResource(R.string.rewards_watch_ad))
+                Text(
+                    if (isAdReady) stringResource(R.string.rewards_watch_ad)
+                    else stringResource(R.string.rewards_ad_loading)
+                )
             }
         },
         dismissButton = {

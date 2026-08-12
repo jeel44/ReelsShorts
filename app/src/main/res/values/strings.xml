@@ -65,4 +65,8 @@
     <string name="rewards_out_of_coins_desc">Watch a rewarded ad to get more coins and continue watching.</string>
     <string name="rewards_earn_50_coins">Earn 50 Coins</string>
     <string name="rewards_earn_50_coins_desc">Watch a short rewarded ad and receive 50 coins.</string>
+    <string name="rewards_ad_loading">Loading ad&#8230;</string>
+    <string name="rewards_ad_earned">You earned %d coins!</string>
+    <string name="rewards_ad_dismissed_early">Watch the full ad to earn coins.</string>
+    <string name="rewards_ad_not_available">Ad not available right now. Please try again shortly.</string>
 </resources>

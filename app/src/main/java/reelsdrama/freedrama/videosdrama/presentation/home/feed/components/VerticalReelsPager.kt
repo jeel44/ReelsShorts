@@ -25,22 +25,27 @@ fun VerticalReelsPager(
     videos: List<Video>,
     playerManager: VideoPlayerManager,
     insufficientCoins: Boolean,
+    showInterstitial: Boolean,
     onLoadMore: () -> Unit,
     onEvent: (FeedEvent) -> Unit
 ) {
     val pagerState = rememberPagerState(pageCount = { videos.size })
-    
+
     // Track the page we are CURRENTLY on to detect successful swipes AWAY.
     var lastSettledPage by remember { mutableIntStateOf(0) }
 
-    // Playback control and swipe detection
-    LaunchedEffect(pagerState.settledPage, insufficientCoins) {
+    // Playback control and swipe detection. showInterstitial is included as a key (and in
+    // the pause condition below) so a video is paused for the ENTIRE time an interstitial is
+    // pending/on screen and automatically resumes the instant it's cleared - the exact same
+    // mechanism already used for the insufficientCoins ("out of coins") overlay, just
+    // extended to a second reason to pause.
+    LaunchedEffect(pagerState.settledPage, insufficientCoins, showInterstitial) {
         if (videos.isNotEmpty()) {
             val currentPage = pagerState.settledPage
             val video = if (currentPage < videos.size) videos[currentPage] else null
-            
+
             if (video != null) {
-                if (insufficientCoins) {
+                if (insufficientCoins || showInterstitial) {
                     playerManager.pause(video.id)
                 } else {
                     playerManager.play(video.id)

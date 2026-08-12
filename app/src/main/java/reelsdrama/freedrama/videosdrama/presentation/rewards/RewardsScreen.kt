@@ -1,16 +1,19 @@
 package reelsdrama.freedrama.videosdrama.presentation.rewards
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import reelsdrama.freedrama.videosdrama.R
+import reelsdrama.freedrama.videosdrama.core.ads.RewardedAdFeedback
 import reelsdrama.freedrama.videosdrama.presentation.rewards.components.*
 import reelsdrama.freedrama.videosdrama.presentation.rewards.viewmodel.RewardsViewModel
 
@@ -23,8 +26,26 @@ fun RewardsScreen(
     viewModel: RewardsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val activity = LocalActivity.current
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val adDismissedEarlyMessage = stringResource(R.string.rewards_ad_dismissed_early)
+    val adNotAvailableMessage = stringResource(R.string.rewards_ad_not_available)
+
+    // Show one-shot feedback for the last rewarded-ad attempt, then clear it so it doesn't
+    // reappear on recomposition/rotation. stringResource() can't be called from this suspend
+    // (non-@Composable) block, so the earned message is formatted via the plain Context API.
+    LaunchedEffect(uiState.rewardedAdFeedback) {
+        val feedback = uiState.rewardedAdFeedback ?: return@LaunchedEffect
+        val message = when (feedback) {
+            is RewardedAdFeedback.Earned -> context.getString(R.string.rewards_ad_earned, feedback.amount)
+            RewardedAdFeedback.DismissedEarly -> adDismissedEarlyMessage
+            RewardedAdFeedback.NotAvailable -> adNotAvailableMessage
+        }
+        snackbarHostState.showSnackbar(message)
+        viewModel.onConsumeRewardedAdFeedback()
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -70,9 +91,8 @@ fun RewardsScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Section: Watch & Earn (Ads Placeholder)
+            // Section: Watch & Earn
             item {
-                val adsComingSoon = stringResource(R.string.rewards_ads_coming_soon)
                 Text(
                     text = stringResource(R.string.rewards_watch_earn),
                     style = MaterialTheme.typography.titleMedium,
@@ -80,12 +100,17 @@ fun RewardsScreen(
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
                 )
                 RewardedAdPlaceholderCard(
+                    isAdReady = uiState.isRewardedAdReady,
                     onWatchAdClick = {
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = adsComingSoon,
-                                duration = SnackbarDuration.Short
-                            )
+                        val currentActivity = activity
+                        if (currentActivity != null) {
+                            viewModel.onWatchRewardedAd(currentActivity)
+                        } else {
+                            // No Activity in this composition (shouldn't normally happen) -
+                            // surface the same "not available" feedback rather than doing nothing.
+                            scope.launch {
+                                snackbarHostState.showSnackbar(adNotAvailableMessage)
+                            }
                         }
                     }
                 )
