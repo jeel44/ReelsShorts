@@ -89,6 +89,10 @@ dependencies {
     implementation(libs.androidx.media3.database)
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.concurrent.futures)
+
+    // GMA Next-Gen SDK (AdMob) - foundation layer only, no ad-loading logic yet.
+    implementation(libs.ads.mobile.sdk)
+
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
