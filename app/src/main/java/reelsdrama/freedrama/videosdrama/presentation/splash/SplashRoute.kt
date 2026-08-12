@@ -1,5 +1,6 @@
 package reelsdrama.freedrama.videosdrama.presentation.splash
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
@@ -32,9 +33,10 @@ fun SplashRoute(
     viewModel: SplashViewModel = hiltViewModel()
 ) {
     var state by remember { mutableStateOf(SplashAnimationState()) }
+    val activity = LocalActivity.current
 
     LaunchedEffect(Unit) {
-        viewModel.startTimer()
+        viewModel.startTimer(activity)
         
         // Start Animations
         launch {

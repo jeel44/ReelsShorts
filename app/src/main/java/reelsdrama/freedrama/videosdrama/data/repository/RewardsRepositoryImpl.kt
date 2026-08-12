@@ -77,6 +77,9 @@ class RewardsRepositoryImpl @Inject constructor(
 
     override fun getWatchedReelIds(): Flow<Set<String>> = dataStore.data.map { it[PreferencesKeys.WATCHED_REELS] ?: emptySet() }
 
+    override suspend fun isFirstLaunch(): Boolean =
+        dataStore.data.first()[PreferencesKeys.WELCOME_BONUS_GRANTED] != true
+
     override suspend fun initRewards() {
         dataStore.edit { prefs ->
             // 1. Check if welcome bonus has already been granted
