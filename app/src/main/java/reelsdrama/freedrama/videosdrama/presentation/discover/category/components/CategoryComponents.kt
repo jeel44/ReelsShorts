@@ -193,7 +193,9 @@ fun CategorySection(
             items(dramas) { drama ->
                 DramaPosterCard(
                     drama = drama,
-                    onDramaClick = { onDramaClick(it) }
+                    // Category landing page: each poster is a specific drama, so tapping it
+                    // should open that drama, not the shared category feed.
+                    onClick = { onDramaClick(drama.id) }
                 )
             }
         }

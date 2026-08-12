@@ -12,6 +12,10 @@ data class RewardsUiState(
     val showHistory: Boolean = false,
     val error: String? = null
 ) {
-    val isClaimedToday: Boolean = dailyRewards.any { it.isToday && it.isClaimed } || dailyRewards.none { it.isToday }
+    // getDailyRewards() guarantees exactly one entry has isToday == true whenever a claim
+    // is pending (and wraps back to day 1 once a 7-day cycle completes), so the absence of
+    // any pending "today" entry reliably means today's reward has actually been claimed -
+    // this is no longer a fallback for an unresolved day, it's the correct signal.
+    val isClaimedToday: Boolean = dailyRewards.none { it.isToday }
     val currentStreak: Int = dailyRewards.count { it.isClaimed }
 }

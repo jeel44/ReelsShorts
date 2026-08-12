@@ -40,17 +40,27 @@ class RewardsRepositoryImpl @Inject constructor(
         
         val isClaimedToday = lastClaimDate == today
         val yesterday = today - 86400000L
-        
+
         // If streak is broken (more than 1 day since last claim and not claimed today)
         val effectiveStreak = if (!isClaimedToday && lastClaimDate < yesterday) 0 else streakCount
+
+        // Once a full 7-day cycle is complete (effectiveStreak == 7) and a new day begins
+        // without a claim yet, wrap back to day 1 instead of pointing at a non-existent
+        // "day 8" - otherwise isToday never matches any of the 7 entries and the claim
+        // button looks permanently disabled. This mirrors claimDailyReward()'s own wrap
+        // rule (newStreak = if (effectiveStreak >= 7) 1 else effectiveStreak + 1), so the
+        // two stay in sync.
+        val wrapsToNewCycle = !isClaimedToday && effectiveStreak >= 7
+        val cycleClaimedCount = if (wrapsToNewCycle) 0 else effectiveStreak
+        val todayDayNum = if (wrapsToNewCycle) 1 else effectiveStreak + 1
 
         List(7) { i ->
             val dayNum = i + 1
             DailyReward(
                 day = dayNum,
                 amount = dailyRewardAmounts[i],
-                isClaimed = dayNum <= streakCount && (dayNum < streakCount || isClaimedToday),
-                isToday = (dayNum == effectiveStreak + 1) && !isClaimedToday,
+                isClaimed = dayNum <= cycleClaimedCount,
+                isToday = (dayNum == todayDayNum) && !isClaimedToday,
                 isSpecial = dayNum == 7
             )
         }

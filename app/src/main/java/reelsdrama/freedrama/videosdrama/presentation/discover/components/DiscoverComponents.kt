@@ -44,14 +44,14 @@ fun SearchHeader(
 @Composable
 fun DramaPosterCard(
     drama: Drama,
-    onDramaClick: (String) -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier
             .width(120.dp)
             .padding(bottom = 8.dp)
-            .clickable { onDramaClick(drama.genre) }
+            .clickable(onClick = onClick)
     ) {
         Box(
             modifier = Modifier
@@ -142,7 +142,9 @@ fun DiscoverSection(
             items(dramas) { drama ->
                 DramaPosterCard(
                     drama = drama,
-                    onDramaClick = onDramaClick
+                    // Top-level Discover tab: sections are grouped by genre, so tapping any
+                    // poster in a row drills into that genre's category landing page.
+                    onClick = { onDramaClick(drama.genre) }
                 )
             }
         }

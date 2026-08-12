@@ -57,7 +57,7 @@ fun CategoryLandingScreen(
                 item {
                     FeaturedBanner(
                         drama = it,
-                        onDramaClick = { onPosterClick(categoryId) }
+                        onDramaClick = onPosterClick
                     )
                 }
             }
@@ -80,7 +80,7 @@ fun CategoryLandingScreen(
                                 ContinueWatchingCard(
                                     drama = drama,
                                     progress = 0.4f,
-                                    onDramaClick = { onPosterClick(categoryId) }
+                                    onDramaClick = onPosterClick
                                 )
                             }
                         }
@@ -93,7 +93,7 @@ fun CategoryLandingScreen(
                 CategorySection(
                     title = stringResource(R.string.category_trending),
                     dramas = trending,
-                    onDramaClick = { onPosterClick(categoryId) }
+                    onDramaClick = onPosterClick
                 )
             }
 
@@ -102,7 +102,7 @@ fun CategoryLandingScreen(
                 CategorySection(
                     title = stringResource(R.string.category_new),
                     dramas = newArrivals,
-                    onDramaClick = { onPosterClick(categoryId) }
+                    onDramaClick = onPosterClick
                 )
             }
 
@@ -111,7 +111,7 @@ fun CategoryLandingScreen(
                 CategorySection(
                     title = stringResource(R.string.category_popular),
                     dramas = popular,
-                    onDramaClick = { onPosterClick(categoryId) }
+                    onDramaClick = onPosterClick
                 )
             }
 
@@ -120,7 +120,7 @@ fun CategoryLandingScreen(
                 CategorySection(
                     title = stringResource(R.string.category_recommended),
                     dramas = recommended,
-                    onDramaClick = { onPosterClick(categoryId) }
+                    onDramaClick = onPosterClick
                 )
             }
         }
