@@ -14,7 +14,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import reelsdrama.freedrama.videosdrama.R
+import reelsdrama.freedrama.videosdrama.core.constants.AdConstants
 import reelsdrama.freedrama.videosdrama.data.fake.FakeDiscoverRepository
+import reelsdrama.freedrama.videosdrama.presentation.components.AdBannerView
 import reelsdrama.freedrama.videosdrama.presentation.discover.category.components.CategoryHeader
 import reelsdrama.freedrama.videosdrama.presentation.discover.category.components.CategorySection
 import reelsdrama.freedrama.videosdrama.presentation.discover.category.components.ContinueWatchingCard
@@ -44,6 +46,13 @@ fun CategoryLandingScreen(
                 title = categoryId,
                 onBackClick = onBackClick
             )
+        },
+        // Scaffold measures whatever's here and pads `content` around it - so this
+        // automatically sits above MainScreen's bottom nav bar (this whole screen is already
+        // inset above it) and automatically stops reserving space if AdBannerView collapses
+        // to zero height (no ad loaded).
+        bottomBar = {
+            AdBannerView(adUnitId = AdConstants.BANNER_FALLBACK_UNIT_ID)
         }
     ) { padding ->
         LazyColumn(

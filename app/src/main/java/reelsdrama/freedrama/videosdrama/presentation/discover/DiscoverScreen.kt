@@ -7,7 +7,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import reelsdrama.freedrama.videosdrama.core.constants.AdConstants
 import reelsdrama.freedrama.videosdrama.data.fake.FakeDiscoverRepository
+import reelsdrama.freedrama.videosdrama.presentation.components.AdBannerView
 import reelsdrama.freedrama.videosdrama.presentation.discover.components.DiscoverSection
 import reelsdrama.freedrama.videosdrama.presentation.discover.components.SearchHeader
 
@@ -22,9 +24,10 @@ fun DiscoverScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         SearchHeader()
-        
+
+        // weight(1f) lets this scroll independently while AdBannerView stays fixed below it.
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(bottom = 16.dp)
         ) {
             items(sections.toList()) { (title, dramas) ->
@@ -35,5 +38,9 @@ fun DiscoverScreen(
                 )
             }
         }
+
+        // Fixed at the bottom, above the bottom nav bar (MainScreen's outer Scaffold already
+        // insets this whole screen above it). Collapses to zero height if no ad loads.
+        AdBannerView(adUnitId = AdConstants.BANNER_FALLBACK_UNIT_ID)
     }
 }
