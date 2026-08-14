@@ -1,6 +1,7 @@
 package reelsdrama.freedrama.videosdrama.core.ads
 
 import android.app.Activity
+import android.util.Log
 import com.google.android.libraries.ads.mobile.sdk.common.AdLoadCallback
 import com.google.android.libraries.ads.mobile.sdk.common.AdRequest
 import com.google.android.libraries.ads.mobile.sdk.common.FullScreenContentError
@@ -59,6 +60,15 @@ class RewardedAdManager @Inject constructor() {
     fun isAdReady(adUnitId: String): Boolean = loadedAds.containsKey(adUnitId)
 
     /**
+     * The coin/point amount [adUnitId]'s currently-loaded ad will grant if watched to
+     * completion, sourced live from the loaded ad's own `RewardItem` - or null if nothing is
+     * loaded for [adUnitId] yet. Lets callers show the *exact* reward up front (e.g. "Claim +10
+     * Coins") before the ad is even shown, instead of a hardcoded display number that could
+     * silently drift from whatever's actually configured for this ad unit.
+     */
+    fun getRewardAmount(adUnitId: String): Int? = loadedAds[adUnitId]?.getRewardItem()?.amount
+
+    /**
      * Starts loading a rewarded ad for [adUnitId] if one isn't already loaded or currently
      * loading. Safe to call repeatedly (e.g. every time a screen appears) - it's a no-op if
      * a load is already in flight or an ad is already cached and waiting to be shown.
@@ -98,6 +108,7 @@ class RewardedAdManager @Inject constructor() {
     fun show(activity: Activity, adUnitId: String, onOutcome: (RewardedAdOutcome) -> Unit) {
         val ad = loadedAds.remove(adUnitId)
         _readyAdUnitIds.update { it - adUnitId }
+        Log.d(TAG, "show() for $adUnitId; ad loaded=${ad != null}")
 
         if (ad == null) {
             onOutcome(RewardedAdOutcome.NotAvailable)
@@ -107,9 +118,12 @@ class RewardedAdManager @Inject constructor() {
         var earnedReward = false
 
         ad.adEventCallback = object : RewardedAdEventCallback {
-            override fun onAdShowedFullScreenContent() {}
+            override fun onAdShowedFullScreenContent() {
+                Log.d(TAG, "onAdShowedFullScreenContent for $adUnitId")
+            }
 
             override fun onAdDismissedFullScreenContent() {
+                Log.d(TAG, "onAdDismissedFullScreenContent for $adUnitId; earnedReward=$earnedReward")
                 if (!earnedReward) {
                     onOutcome(RewardedAdOutcome.DismissedWithoutReward)
                 }
@@ -120,6 +134,7 @@ class RewardedAdManager @Inject constructor() {
             override fun onAdFailedToShowFullScreenContent(
                 fullScreenContentError: FullScreenContentError
             ) {
+                Log.d(TAG, "onAdFailedToShowFullScreenContent for $adUnitId: ${fullScreenContentError.message}")
                 onOutcome(RewardedAdOutcome.NotAvailable)
                 preload(adUnitId)
             }
@@ -133,10 +148,15 @@ class RewardedAdManager @Inject constructor() {
             activity,
             object : OnUserEarnedRewardListener {
                 override fun onUserEarnedReward(reward: RewardItem) {
+                    Log.d(TAG, "onUserEarnedReward for $adUnitId: amount=${reward.amount} type=${reward.type}")
                     earnedReward = true
                     onOutcome(RewardedAdOutcome.Earned(reward))
                 }
             },
         )
+    }
+
+    private companion object {
+        const val TAG = "AdDebug"
     }
 }

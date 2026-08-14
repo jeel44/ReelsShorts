@@ -45,26 +45,17 @@
     <string name="link_copied">Link Copied</string>
     <string name="more">More</string>
 
-    <!-- Category Landing -->
-    <string name="category_featured">FEATURED</string>
-    <string name="category_continue">Continue Watching</string>
-    <string name="category_trending">Trending Now</string>
-    <string name="category_new">New Releases</string>
-    <string name="category_popular">Most Popular</string>
-    <string name="category_recommended">Recommended For You</string>
-    <string name="category_episode_progress">Episode %1$d / %2$d</string>
-
     <!-- Rewards Ads -->
     <string name="rewards_watch_earn">Watch &amp; Earn</string>
     <string name="rewards_watch_ad">Watch Ad</string>
     <string name="rewards_watch_subtitle">Watch a rewarded ad</string>
-    <string name="rewards_ad_reward">+50 Coins</string>
+    <string name="rewards_ad_reward">+10 Coins</string>
     <string name="rewards_ads_coming_soon">Rewarded ads coming soon</string>
     <string name="rewards_coming_soon">Coming Soon</string>
-    <string name="rewards_out_of_coins">Out of Coins</string>
-    <string name="rewards_out_of_coins_desc">Watch a rewarded ad to get more coins and continue watching.</string>
-    <string name="rewards_earn_50_coins">Earn 50 Coins</string>
-    <string name="rewards_earn_50_coins_desc">Watch a short rewarded ad and receive 50 coins.</string>
+    <!-- Reward-preview "out of coins" dialog (AdConfirmationDialog) -->
+    <string name="rewards_out_of_coins">You\'re out of coins</string>
+    <string name="rewards_out_of_coins_desc">Watch a short ad to claim this.</string>
+    <string name="ad_confirmation_claim_cta">Claim +%1$d Coins</string>
     <string name="rewards_ad_loading">Loading ad&#8230;</string>
     <string name="rewards_ad_earned">You earned %d coins!</string>
     <string name="rewards_ad_dismissed_early">Watch the full ad to earn coins.</string>
