@@ -2,11 +2,9 @@ package reelsdrama.freedrama.videosdrama.presentation.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Stars
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -15,16 +13,9 @@ sealed class AppRoute(val route: String) {
     data object Splash : AppRoute("splash")
     data object Main : AppRoute("main")
     data object Home : AppRoute("home")
-    data object Discover : AppRoute("discover")
     data object Rewards : AppRoute("rewards")
     data object Settings : AppRoute("settings")
-    data object CategoryLanding : AppRoute("category_landing/{categoryId}") {
-        fun createRoute(categoryId: String) = "category_landing/$categoryId"
-    }
-    data object CategoryReels : AppRoute("category_reels/{categoryId}") {
-        fun createRoute(categoryId: String) = "category_reels/$categoryId"
-    }
-    
+
     // Obsolete or unused routes from previous phases
     data object Search : AppRoute("search")
     data object Upload : AppRoute("upload")
@@ -48,12 +39,6 @@ val bottomNavItems = listOf(
         label = "Home",
         selectedIcon = Icons.Filled.Home,
         unselectedIcon = Icons.Outlined.Home
-    ),
-    BottomNavItem(
-        route = AppRoute.Discover.route,
-        label = "Discover",
-        selectedIcon = Icons.Filled.Language,
-        unselectedIcon = Icons.Outlined.Language
     ),
     BottomNavItem(
         route = AppRoute.Rewards.route,

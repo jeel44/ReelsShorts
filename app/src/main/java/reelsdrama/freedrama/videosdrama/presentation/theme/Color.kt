@@ -8,6 +8,15 @@ val DramaSurface = Color(0xFF111113)
 val DramaOnDark = Color(0xFFF8FAFC)
 val DramaGray = Color(0xFF9CA3AF)
 
+/**
+ * The app's brand gradient (pink -> magenta -> purple) - originally defined inline in
+ * [reelsdrama.freedrama.videosdrama.presentation.splash.components.AnimatedLogo] for the
+ * splash logo. Pulled out here as the single source of truth so every other placement that
+ * wants the same brand gradient (e.g. the bottom nav's active-tab pill) references these
+ * exact values instead of re-guessing/duplicating the hex codes.
+ */
+val BrandGradientColors = listOf(Color(0xFFFF5A84), Color(0xFFFF2D7A), Color(0xFF8A2BE2))
+
 // Accent Colors Palettes (Simplified M3 Sets)
 object AccentPalettes {
     val Blue = AccentSet(
