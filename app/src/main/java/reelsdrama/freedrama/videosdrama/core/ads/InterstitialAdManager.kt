@@ -7,10 +7,14 @@ import com.google.android.libraries.ads.mobile.sdk.common.FullScreenContentError
 import com.google.android.libraries.ads.mobile.sdk.common.LoadAdError
 import com.google.android.libraries.ads.mobile.sdk.interstitial.InterstitialAd
 import com.google.android.libraries.ads.mobile.sdk.interstitial.InterstitialAdEventCallback
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -48,6 +52,18 @@ class InterstitialAdManager @Inject constructor() {
 
     private val loadedAds = mutableMapOf<String, InterstitialAd>()
     private val loadingUnitIds = mutableSetOf<String>()
+
+    // Same self-made-scope idiom AdInitializer already uses in this package
+    // (CoroutineScope(SupervisorJob() + Dispatchers.X) as a private singleton field) - here to
+    // hop onto the main thread before invoking the caller's onOutcome from
+    // onAdDismissedFullScreenContent/onAdFailedToShowFullScreenContent below. Those two fire
+    // from the GMA SDK's own background dispatch (confirmed via the "GMA(BG)" crashing thread
+    // name), not the main thread, but callers of show() are entitled to assume onOutcome runs
+    // on the main thread - same as every other Android callback API - since they may do
+    // main-thread-only work in response (e.g. RewardsViewModel.onBackFromRewards calling
+    // navController.navigate(), which crashed with "Method setCurrentState must be called on
+    // the main thread" before this fix).
+    private val mainScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private val _readyAdUnitIds = MutableStateFlow<Set<String>>(emptySet())
 
@@ -112,15 +128,23 @@ class InterstitialAdManager @Inject constructor() {
             }
 
             override fun onAdDismissedFullScreenContent() {
-                onOutcome(InterstitialAdOutcome.Dismissed)
-                // The ad we just showed is consumed either way - line up a fresh one.
+                // Dispatched, not called directly - this fires on the SDK's own background
+                // thread (see mainScope's doc comment above), but onOutcome may do main-thread
+                // work (navigation, Compose state driving a view, etc.).
+                mainScope.launch { onOutcome(InterstitialAdOutcome.Dismissed) }
+                // The ad we just showed is consumed either way - line up a fresh one. Left on
+                // the calling (background) thread, not dispatched - preload() only touches
+                // plain Kotlin collections and a StateFlow, neither of which requires the main
+                // thread, and there's no reason to delay the next load waiting for a main-thread
+                // hop.
                 preload(adUnitId)
             }
 
             override fun onAdFailedToShowFullScreenContent(
                 fullScreenContentError: FullScreenContentError
             ) {
-                onOutcome(InterstitialAdOutcome.NotAvailable)
+                // Same risk and same fix as onAdDismissedFullScreenContent above.
+                mainScope.launch { onOutcome(InterstitialAdOutcome.NotAvailable) }
                 preload(adUnitId)
             }
 

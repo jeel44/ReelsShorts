@@ -1,6 +1,7 @@
 package reelsdrama.freedrama.videosdrama.core.ads
 
 import android.content.Context
+import android.util.Log
 import com.google.android.libraries.ads.mobile.sdk.MobileAds
 import com.google.android.libraries.ads.mobile.sdk.initialization.InitializationConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -46,6 +47,8 @@ class AdInitializer @Inject constructor(
         if (hasStarted) return
         hasStarted = true
 
+        val startedAt = System.currentTimeMillis()
+        Log.d(TAG, "MobileAds.initialize() starting at $startedAt")
         initScope.launch {
             MobileAds.initialize(
                 context,
@@ -53,8 +56,14 @@ class AdInitializer @Inject constructor(
             ) {
                 // Fires once GMA Next-Gen SDK + adapter initialization finish (or after
                 // the SDK's internal 30s timeout).
+                val elapsed = System.currentTimeMillis() - startedAt
+                Log.d(TAG, "MobileAds.initialize() completed after ${elapsed}ms")
                 _isInitialized.value = true
             }
         }
+    }
+
+    private companion object {
+        const val TAG = "AdDebug"
     }
 }

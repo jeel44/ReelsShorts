@@ -1,6 +1,7 @@
 package reelsdrama.freedrama.videosdrama.core.ads
 
 import android.app.Activity
+import android.util.Log
 import com.google.android.libraries.ads.mobile.sdk.appopen.AppOpenAd
 import com.google.android.libraries.ads.mobile.sdk.appopen.AppOpenAdEventCallback
 import com.google.android.libraries.ads.mobile.sdk.common.AdLoadCallback
@@ -69,10 +70,15 @@ class AppOpenAdManager @Inject constructor() {
         if (isLoading || isAdAvailable()) return
         isLoading = true
 
+        val requestedAt = System.currentTimeMillis()
+        Log.d(TAG, "AppOpenAd.load() starting at $requestedAt for $adUnitId")
+
         AppOpenAd.load(
             AdRequest.Builder(adUnitId).build(),
             object : AdLoadCallback<AppOpenAd> {
                 override fun onAdLoaded(ad: AppOpenAd) {
+                    val elapsed = System.currentTimeMillis() - requestedAt
+                    Log.d(TAG, "AppOpenAd onAdLoaded after ${elapsed}ms")
                     isLoading = false
                     loadedAd = ad
                     loadTimeMillis = System.currentTimeMillis()
@@ -80,6 +86,8 @@ class AppOpenAdManager @Inject constructor() {
                 }
 
                 override fun onAdFailedToLoad(adError: LoadAdError) {
+                    val elapsed = System.currentTimeMillis() - requestedAt
+                    Log.d(TAG, "AppOpenAd onAdFailedToLoad after ${elapsed}ms: ${adError.message}")
                     isLoading = false
                     loadedAd = null
                     _isAdReady.value = false
@@ -90,7 +98,9 @@ class AppOpenAdManager @Inject constructor() {
 
     private fun isAdAvailable(): Boolean {
         val hasAd = loadedAd != null
-        val isFresh = System.currentTimeMillis() - loadTimeMillis < EXPIRY_WINDOW_MILLIS
+        val ageMillis = System.currentTimeMillis() - loadTimeMillis
+        val isFresh = ageMillis < EXPIRY_WINDOW_MILLIS
+        Log.d(TAG, "isAdAvailable: hasAd=$hasAd loadTimeMillis=$loadTimeMillis ageMillis=$ageMillis isFresh=$isFresh")
         return hasAd && isFresh
     }
 
@@ -107,6 +117,7 @@ class AppOpenAdManager @Inject constructor() {
      * afterwards so it's ready for the next cold start.
      */
     fun show(activity: Activity, adUnitId: String, onOutcome: (AppOpenAdOutcome) -> Unit) {
+        Log.d(TAG, "show() called; isAdAvailable=${isAdAvailable()} hasAd=${loadedAd != null}")
         if (!isAdAvailable()) {
             loadedAd = null
             _isAdReady.value = false
@@ -145,6 +156,7 @@ class AppOpenAdManager @Inject constructor() {
     }
 
     private companion object {
+        const val TAG = "AdDebug"
         const val EXPIRY_WINDOW_MILLIS = 4 * 60 * 60 * 1000L // 4 hours
     }
 }
