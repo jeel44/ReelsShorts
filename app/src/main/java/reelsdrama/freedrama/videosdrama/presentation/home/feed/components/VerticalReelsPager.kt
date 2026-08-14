@@ -13,11 +13,18 @@ import androidx.compose.ui.graphics.Color
 import reelsdrama.freedrama.videosdrama.core.constants.PlayerConstants
 import reelsdrama.freedrama.videosdrama.core.player.VideoPlayerManager
 import reelsdrama.freedrama.videosdrama.presentation.home.feed.FeedEvent
+import reelsdrama.freedrama.videosdrama.presentation.home.feed.FeedItem
 import reelsdrama.freedrama.videosdrama.presentation.home.feed.ReelCard
+import reelsdrama.freedrama.videosdrama.presentation.home.feed.withNativeAdSlots
 import reelsdrama.freedrama.videosdrama.presentation.home.model.Video
 
 /**
  * Vertical pager for reels. Handles playback orchestration and pagination.
+ *
+ * Every 5th reel, a full-screen native ad ([FeedItem.NativeAdItem], rendered by
+ * [FullScreenNativeAdPage]) is inserted into the page list via [withNativeAdSlots] - it's a
+ * real page the user swipes past exactly like [ReelCard], not an overlay drawn on top of one
+ * (that was the old interstitial's behavior, removed from this feed in favor of this).
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -25,52 +32,57 @@ fun VerticalReelsPager(
     videos: List<Video>,
     playerManager: VideoPlayerManager,
     insufficientCoins: Boolean,
-    showInterstitial: Boolean,
+    nativeAdUnitId: String,
     onLoadMore: () -> Unit,
     onEvent: (FeedEvent) -> Unit
 ) {
-    val pagerState = rememberPagerState(pageCount = { videos.size })
+    val items = remember(videos) { videos.withNativeAdSlots() }
+    val pagerState = rememberPagerState(pageCount = { items.size })
 
     // Track the page we are CURRENTLY on to detect successful swipes AWAY.
     var lastSettledPage by remember { mutableIntStateOf(0) }
 
-    // Playback control and swipe detection. showInterstitial is included as a key (and in
-    // the pause condition below) so a video is paused for the ENTIRE time an interstitial is
-    // pending/on screen and automatically resumes the instant it's cleared - the exact same
-    // mechanism already used for the insufficientCoins ("out of coins") overlay, just
-    // extended to a second reason to pause.
-    LaunchedEffect(pagerState.settledPage, insufficientCoins, showInterstitial) {
-        if (videos.isNotEmpty()) {
+    // Playback control and swipe detection.
+    LaunchedEffect(pagerState.settledPage, insufficientCoins) {
+        if (items.isNotEmpty()) {
             val currentPage = pagerState.settledPage
-            val video = if (currentPage < videos.size) videos[currentPage] else null
-
-            if (video != null) {
-                if (insufficientCoins || showInterstitial) {
-                    playerManager.pause(video.id)
-                } else {
-                    playerManager.play(video.id)
-                }
-
-                // If we settled on a NEW page, it means the user successfully swiped AWAY from the last one
-                if (currentPage != lastSettledPage) {
-                    if (lastSettledPage >= 0 && lastSettledPage < videos.size) {
-                        val swipedFromVideo = videos[lastSettledPage]
-                        onEvent(FeedEvent.ReelSwiped(swipedFromVideo.id))
+            when (val item = items.getOrNull(currentPage)) {
+                is FeedItem.VideoItem -> {
+                    if (insufficientCoins) {
+                        playerManager.pause(item.video.id)
+                    } else {
+                        playerManager.play(item.video.id)
                     }
-                    lastSettledPage = currentPage
                 }
+                is FeedItem.NativeAdItem, null -> {
+                    // No video on this page (a native ad slot, or an out-of-range index) -
+                    // make sure nothing is left playing under it, same as the insufficientCoins
+                    // pause above did for the old overlay case.
+                    playerManager.pauseAll()
+                }
+            }
+
+            // If we settled on a NEW page, it means the user successfully swiped AWAY from the
+            // last one. Coins are only consumed for swiping away from an actual reel - swiping
+            // past a native ad page doesn't fire FeedEvent.ReelSwiped at all.
+            if (currentPage != lastSettledPage) {
+                val previousItem = items.getOrNull(lastSettledPage)
+                if (previousItem is FeedItem.VideoItem) {
+                    onEvent(FeedEvent.ReelSwiped(previousItem.video.id))
+                }
+                lastSettledPage = currentPage
             }
         }
     }
 
     // Pagination
     LaunchedEffect(pagerState.currentPage) {
-        if (pagerState.currentPage >= videos.size - PlayerConstants.RECENT_PAGES_THRESHOLD && videos.isNotEmpty()) {
+        if (pagerState.currentPage >= items.size - PlayerConstants.RECENT_PAGES_THRESHOLD && items.isNotEmpty()) {
             onLoadMore()
         }
     }
 
-    if (videos.isEmpty()) {
+    if (items.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Loading...", color = Color.White)
         }
@@ -80,15 +92,24 @@ fun VerticalReelsPager(
             modifier = Modifier.fillMaxSize(),
             beyondViewportPageCount = 1,
             userScrollEnabled = !insufficientCoins,
-            key = { index -> if (index < videos.size) videos[index].id else index }
+            key = { index -> items[index].key }
         ) { page ->
-            val video = videos[page]
-            ReelCard(
-                video = video,
-                isTabSelected = true,
-                playerManager = playerManager,
-                modifier = Modifier.fillMaxSize()
-            )
+            when (val item = items[page]) {
+                is FeedItem.VideoItem -> {
+                    ReelCard(
+                        video = item.video,
+                        isTabSelected = true,
+                        playerManager = playerManager,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                is FeedItem.NativeAdItem -> {
+                    FullScreenNativeAdPage(
+                        adUnitId = nativeAdUnitId,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
         }
     }
 }

@@ -25,14 +25,25 @@ object AdConstants {
     /** Rewarded ad shown from the Rewards screen's "Watch & Earn" card. */
     const val REWARDED_WATCH_AND_EARN_UNIT_ID = "ca-app-pub-3940256099942544/5224354917"
 
-    /** Interstitial ad shown in the reels feed, roughly every 5 reels. */
+    /**
+     * Interstitial ad unit. No longer wired into the reels feed's every-5-reels slot - that
+     * placement now shows [NATIVE_FEED_UNIT_ID] instead (a full-screen native ad the user
+     * swipes past as a real pager page, rather than a modal overlay on top of one). Now shown
+     * instead when the user navigates back out of the Rewards screen - see
+     * [reelsdrama.freedrama.videosdrama.presentation.rewards.viewmodel.RewardsViewModel.onBackFromRewards].
+     */
     const val INTERSTITIAL_FEED_UNIT_ID = "ca-app-pub-3940256099942544/1033173712"
+
+    /**
+     * Full-screen native-advanced ad shown as its own page in the reels feed every 5 reels -
+     * Google's official native-advanced test unit. See
+     * [reelsdrama.freedrama.videosdrama.presentation.home.feed.FeedItem.withNativeAdSlots] and
+     * [reelsdrama.freedrama.videosdrama.presentation.home.feed.components.FullScreenNativeAdPage].
+     */
+    const val NATIVE_FEED_UNIT_ID = "ca-app-pub-3940256099942544/2247696110"
 
     /** App Open ad shown on cold/warm app start. */
     const val APP_OPEN_UNIT_ID = "ca-app-pub-3940256099942544/9257395921"
-
-    /** Native ad shown within Discover/Category listings. */
-    const val NATIVE_DISCOVER_UNIT_ID = "ca-app-pub-3940256099942544/2247696110"
 
     /** Banner ad, used as a fallback wherever native isn't used. */
     const val BANNER_FALLBACK_UNIT_ID = "ca-app-pub-3940256099942544/9214589741"

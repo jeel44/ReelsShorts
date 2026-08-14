@@ -6,8 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import reelsdrama.freedrama.videosdrama.core.ads.AdInitializer
-import reelsdrama.freedrama.videosdrama.core.ads.InterstitialAdManager
-import reelsdrama.freedrama.videosdrama.core.ads.InterstitialAdOutcome
+import reelsdrama.freedrama.videosdrama.core.ads.NativeAdManager
 import reelsdrama.freedrama.videosdrama.core.ads.RewardedAdFeedback
 import reelsdrama.freedrama.videosdrama.core.ads.RewardedAdManager
 import reelsdrama.freedrama.videosdrama.core.ads.RewardedAdOutcome
@@ -30,7 +29,7 @@ class FeedViewModel @Inject constructor(
     private val rewardsRepository: RewardsRepository,
     private val adInitializer: AdInitializer,
     private val rewardedAdManager: RewardedAdManager,
-    private val interstitialAdManager: InterstitialAdManager,
+    private val nativeAdManager: NativeAdManager,
     val playerManager: VideoPlayerManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -47,30 +46,50 @@ class FeedViewModel @Inject constructor(
     // In-memory set to prevent duplicate processing during the active session
     private val processingVideoIds = mutableSetOf<String>()
 
-    // In-memory only, deliberately: this FeedViewModel instance is scoped to its NavHost
-    // back stack entry (Home / a given CategoryReels destination) via Hilt's default
-    // hiltViewModel() scoping, and MainScreen's bottom-nav navigation uses
-    // popUpTo { saveState = true } + restoreState = true, which preserves that ViewModel
-    // (and this counter) across normal tab switches. It only resets on a genuine process
-    // restart or if the destination is actually popped off the back stack, which is exactly
-    // the desired behavior - no DataStore persistence needed for this.
-    private var swipeCount = 0
-
     init {
         observeRewardsData()
         loadInitialVideos()
         observeRewardedAdAvailability()
-        preloadInterstitialAdWhenReady()
+        preloadNativeAdWhenReady()
+        observeAdInitialization()
+    }
+
+    /**
+     * Mirrors [AdInitializer.isInitialized] into [FeedUiState.isAdInitialized] so
+     * [reelsdrama.freedrama.videosdrama.presentation.components.AdBannerView] (the feed's
+     * bottom banner) can gate its load using this ViewModel's existing [AdInitializer]
+     * access, instead of the standalone `AdBannerViewModel` bridge built for screens that
+     * don't have a ViewModel of their own.
+     */
+    private fun observeAdInitialization() {
+        adInitializer.isInitialized
+            .onEach { initialized -> _uiState.update { it.copy(isAdInitialized = initialized) } }
+            .launchIn(viewModelScope)
     }
 
     private fun observeRewardsData() {
         // 1. Observe virtual coin balance
         rewardsRepository.getCoinBalance()
             .onEach { balance ->
-                _uiState.update { it.copy(
-                    coinBalance = balance,
-                    insufficientCoins = balance <= 0
-                ) }
+                val insufficientCoins = balance <= 0
+                _uiState.update {
+                    it.copy(
+                        coinBalance = balance,
+                        insufficientCoins = insufficientCoins,
+                        // Mirrors insufficientCoins directly - deliberately no edge-gating
+                        // here. This used to only flip to true on a fresh false->true
+                        // transition (and otherwise preserve whatever showAdConfirmation
+                        // already was, so a user's Cancel stuck once genuinely broke), which
+                        // meant re-emissions of this Flow while still at 0 - whether from
+                        // another failed swipe attempt via consumeCoinForReel's edit{}-always-
+                        // commits behavior, or any other unrelated write - never reopened it
+                        // after that first Cancel. The dialog is meant to reopen every distinct
+                        // time the balance is observed at 0, not just the first, so it now just
+                        // tracks insufficientCoins directly; once coins are gained it still
+                        // always closes.
+                        showAdConfirmation = insufficientCoins
+                    )
+                }
             }
             .launchIn(viewModelScope)
 
@@ -95,24 +114,40 @@ class FeedViewModel @Inject constructor(
 
         rewardedAdManager.readyAdUnitIds
             .onEach { readyAdUnitIds ->
+                val isReady = AdConstants.REWARDED_COIN_UNLOCK_UNIT_ID in readyAdUnitIds
                 _uiState.update {
-                    it.copy(isRewardedAdReady = AdConstants.REWARDED_COIN_UNLOCK_UNIT_ID in readyAdUnitIds)
+                    it.copy(
+                        isRewardedAdReady = isReady,
+                        // Only overwritten once an ad is actually loaded and can report its
+                        // real RewardItem.amount - see FeedUiState.coinUnlockRewardAmount's doc
+                        // comment for why the fallback stays put otherwise, rather than briefly
+                        // showing something like "+0" while nothing is loaded yet.
+                        coinUnlockRewardAmount = if (isReady) {
+                            rewardedAdManager.getRewardAmount(AdConstants.REWARDED_COIN_UNLOCK_UNIT_ID)
+                                ?: it.coinUnlockRewardAmount
+                        } else {
+                            it.coinUnlockRewardAmount
+                        }
+                    )
                 }
             }
             .launchIn(viewModelScope)
     }
 
     /**
-     * Preloads the feed interstitial as soon as MobileAds finishes initializing. Unlike the
-     * rewarded ad, the UI never needs to know "is it ready" ahead of time - the interstitial
-     * is triggered opportunistically every 5th swipe and simply skips that cycle via
-     * [InterstitialAdOutcome.NotAvailable] if nothing is loaded yet, so there's no readiness
-     * state to mirror into [FeedUiState].
+     * Preloads the feed's full-screen native ad as soon as MobileAds finishes initializing, so
+     * the first ad slot ([FeedItem.withNativeAdSlots] inserts one every 5 reels) already has an
+     * ad sitting in [NativeAdManager]'s cache by the time the user swipes to it - see
+     * [reelsdrama.freedrama.videosdrama.presentation.home.feed.components.FullScreenNativeAdPage]
+     * for where it's actually taken and rendered. Unlike the rewarded ad, this ViewModel never
+     * needs to know "is it ready" ahead of time - [NativeAdManager.take] always lines up the
+     * next one regardless of outcome, and the ad page itself falls back to a shimmer while
+     * nothing is ready yet.
      */
-    private fun preloadInterstitialAdWhenReady() {
+    private fun preloadNativeAdWhenReady() {
         viewModelScope.launch {
             adInitializer.isInitialized.first { it }
-            interstitialAdManager.preload(AdConstants.INTERSTITIAL_FEED_UNIT_ID)
+            nativeAdManager.preload(AdConstants.NATIVE_FEED_UNIT_ID)
         }
     }
 
@@ -145,8 +180,6 @@ class FeedViewModel @Inject constructor(
                         processingVideoIds.remove(videoId)
                     }
                 }
-
-                maybeTriggerInterstitial()
             }
             is FeedEvent.ToggleAdConfirmation -> {
                 _uiState.update { it.copy(showAdConfirmation = event.show) }
@@ -156,52 +189,6 @@ class FeedViewModel @Inject constructor(
             }
             is FeedEvent.ConsumeRewardedAdFeedback -> {
                 _uiState.update { it.copy(rewardedAdFeedback = null) }
-            }
-            is FeedEvent.ShowInterstitialAd -> {
-                showInterstitialAd(event.activity)
-            }
-            is FeedEvent.DismissInterstitialTrigger -> {
-                _uiState.update { it.copy(showInterstitial = false) }
-            }
-        }
-    }
-
-    /**
-     * Counts this swipe and, every [INTERSTITIAL_EVERY_N_SWIPES]th one, flips
-     * [FeedUiState.showInterstitial] to true - the UI reacts by pausing playback and asking
-     * [showInterstitialAd] to actually display it. Guarded against firing while the coin-gate
-     * rewarded-ad flow owns the screen (also structurally impossible today since swiping is
-     * disabled whenever [FeedUiState.insufficientCoins] is true - the flow that
-     * [FeedUiState.showAdConfirmation] and the rewarded ad both depend on) and against
-     * stacking a second trigger on top of one that hasn't resolved yet.
-     */
-    private fun maybeTriggerInterstitial() {
-        swipeCount++
-        if (swipeCount % INTERSTITIAL_EVERY_N_SWIPES != 0) return
-
-        val state = _uiState.value
-        if (state.insufficientCoins || state.showAdConfirmation || state.showInterstitial) return
-
-        _uiState.update { it.copy(showInterstitial = true) }
-    }
-
-    /**
-     * Shows the feed interstitial. [InterstitialAdOutcome.Shown] means it's actually on
-     * screen - [FeedUiState.showInterstitial] (and therefore playback pausing) stays true
-     * until [InterstitialAdOutcome.Dismissed] or [InterstitialAdOutcome.NotAvailable]
-     * confirms the attempt is over, so a video is never resumed while the ad is still up.
-     */
-    private fun showInterstitialAd(activity: Activity) {
-        interstitialAdManager.show(
-            activity = activity,
-            adUnitId = AdConstants.INTERSTITIAL_FEED_UNIT_ID
-        ) { outcome ->
-            when (outcome) {
-                InterstitialAdOutcome.Shown -> Unit
-                InterstitialAdOutcome.Dismissed,
-                InterstitialAdOutcome.NotAvailable -> {
-                    _uiState.update { it.copy(showInterstitial = false) }
-                }
             }
         }
     }
@@ -282,10 +269,5 @@ class FeedViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         playerManager.releaseAll()
-    }
-
-    private companion object {
-        /** Show the feed interstitial every Nth completed swipe, starting from the Nth. */
-        const val INTERSTITIAL_EVERY_N_SWIPES = 5
     }
 }

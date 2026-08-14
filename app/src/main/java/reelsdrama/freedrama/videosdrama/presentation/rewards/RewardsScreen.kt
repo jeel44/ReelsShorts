@@ -1,5 +1,6 @@
 package reelsdrama.freedrama.videosdrama.presentation.rewards
 
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,6 +24,7 @@ import reelsdrama.freedrama.videosdrama.presentation.rewards.viewmodel.RewardsVi
  */
 @Composable
 fun RewardsScreen(
+    onBackClick: () -> Unit,
     viewModel: RewardsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -32,6 +34,17 @@ fun RewardsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val adDismissedEarlyMessage = stringResource(R.string.rewards_ad_dismissed_early)
     val adNotAvailableMessage = stringResource(R.string.rewards_ad_not_available)
+
+    // The system back gesture/button - this screen has no top-bar back icon of its own. Note
+    // there's a second, separate exit path that also needs the same ad-then-navigate treatment:
+    // tapping "Home" directly in the bottom nav while on this screen, wired in MainScreen.kt
+    // (it calls navigate() straight from the nav bar, entirely outside this composable). Both
+    // paths funnel through the same RewardsViewModel.onExitRewards - see its doc comment,
+    // including for the re-entrancy guard that covers both together, not just repeated
+    // back-presses.
+    BackHandler {
+        viewModel.onExitRewards(activity, onBackClick)
+    }
 
     // Show one-shot feedback for the last rewarded-ad attempt, then clear it so it doesn't
     // reappear on recomposition/rotation. stringResource() can't be called from this suspend

@@ -12,11 +12,4 @@ sealed interface FeedEvent {
 
     /** UI has shown [FeedUiState.rewardedAdFeedback] - clear it so it doesn't repeat. */
     data object ConsumeRewardedAdFeedback : FeedEvent
-
-    /** Every-5th-swipe trigger fired and the UI has an [activity] to show the interstitial on. */
-    data class ShowInterstitialAd(val activity: Activity) : FeedEvent
-
-    /** No Activity was available to show the pending interstitial - clear the trigger so
-     *  playback isn't left paused forever waiting for an ad that will never be shown. */
-    data object DismissInterstitialTrigger : FeedEvent
 }

@@ -1,8 +1,8 @@
 package reelsdrama.freedrama.videosdrama.presentation.home.feed
 
+import android.util.Log
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -17,9 +17,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.google.android.libraries.ads.mobile.sdk.banner.AdSize
 import reelsdrama.freedrama.videosdrama.R
 import reelsdrama.freedrama.videosdrama.core.ads.RewardedAdFeedback
+import reelsdrama.freedrama.videosdrama.core.constants.AdConstants
 import reelsdrama.freedrama.videosdrama.core.player.VideoPlayerManager
+import reelsdrama.freedrama.videosdrama.presentation.components.AdBannerView
 import reelsdrama.freedrama.videosdrama.presentation.home.feed.components.AdConfirmationDialog
 import reelsdrama.freedrama.videosdrama.presentation.home.feed.components.VerticalReelsPager
 import kotlinx.coroutines.launch
@@ -62,153 +65,133 @@ fun ReelsFeedScreen(
         onEvent(FeedEvent.ConsumeRewardedAdFeedback)
     }
 
-    // Every-5th-swipe interstitial trigger. Runs once per rising edge of showInterstitial;
-    // VerticalReelsPager reacts to the same flag itself to pause/resume video around it.
-    LaunchedEffect(uiState.showInterstitial) {
-        if (uiState.showInterstitial) {
-            val currentActivity = activity
-            if (currentActivity != null) {
-                onEvent(FeedEvent.ShowInterstitialAd(currentActivity))
-            } else {
-                // No Activity in this composition (shouldn't normally happen) - don't leave
-                // playback paused waiting for an ad that can never be shown.
-                onEvent(FeedEvent.DismissInterstitialTrigger)
-            }
-        }
-    }
-
-    Box(
+    // Column, not a single full-size Box: the video area (VerticalReelsPager + all its
+    // overlays) gets weight(1f) and the banner - Home only - sits below it as a real
+    // sibling, not layered on top. This screen is a full-bleed vertical video feed where
+    // VideoInfoOverlay (caption/hashtags/music) sits flush against the bottom edge at full
+    // width and VideoSideActionBar occupies the bottom-right - there is no empty strip at
+    // the true bottom of the video itself to overlay a banner into without covering one of
+    // those. Reserving real layout space below the video (rather than overlaying) is the
+    // only placement that guarantees zero overlap. AdBannerView still collapses to zero
+    // height whenever nothing is loaded, so the video stays genuinely full-bleed until a
+    // banner actually has something to show, and only then does the video area shrink by
+    // the banner's height to make room.
+    Column(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        VerticalReelsPager(
-            videos = uiState.videos,
-            playerManager = playerManager,
-            insufficientCoins = uiState.insufficientCoins,
-            showInterstitial = uiState.showInterstitial,
-            onLoadMore = { onEvent(FeedEvent.LoadMoreVideos) },
-            onEvent = onEvent
-        )
+        Box(
+            modifier = Modifier.weight(1f)
+        ) {
+            VerticalReelsPager(
+                videos = uiState.videos,
+                playerManager = playerManager,
+                insufficientCoins = uiState.insufficientCoins,
+                nativeAdUnitId = AdConstants.NATIVE_FEED_UNIT_ID,
+                onLoadMore = { onEvent(FeedEvent.LoadMoreVideos) },
+                onEvent = onEvent
+            )
 
-        if (!isCategoryView) {
-            // Coin Balance Indicator for Home
-            Surface(
-                onClick = onCoinClick,
-                color = Color.Black.copy(alpha = 0.3f),
-                shape = RoundedCornerShape(20.dp),
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .statusBarsPadding()
-                    .padding(top = 12.dp, end = 16.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+            if (!isCategoryView) {
+                // Coin Balance Indicator for Home
+                Surface(
+                    onClick = onCoinClick,
+                    color = Color.Black.copy(alpha = 0.3f),
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .statusBarsPadding()
+                        .padding(top = 12.dp, end = 16.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.MonetizationOn,
-                        contentDescription = "Coins",
-                        tint = Color(0xFFF5C542),
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "${uiState.coinBalance} Coins",
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        } else {
-            // Category View Header (Back Button)
-            IconButton(
-                onClick = { onBackClick?.invoke() },
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .statusBarsPadding()
-                    .padding(top = 8.dp, start = 8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.White
-                )
-            }
-        }
-
-        // Out of Coins Overlay
-        if (uiState.insufficientCoins) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.9f))
-                    .clickable(enabled = false) {},
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MonetizationOn,
-                        contentDescription = null,
-                        tint = Color(0xFFF5C542),
-                        modifier = Modifier.size(64.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = stringResource(R.string.rewards_out_of_coins),
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(R.string.rewards_out_of_coins_desc),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.7f),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Button(
-                        onClick = {
-                            onEvent(FeedEvent.ToggleAdConfirmation(true))
-                        },
-                        shape = RoundedCornerShape(12.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
-                        Text(stringResource(R.string.rewards_watch_ad))
+                        Icon(
+                            imageVector = Icons.Default.MonetizationOn,
+                            contentDescription = "Coins",
+                            tint = Color(0xFFF5C542),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "${uiState.coinBalance} Coins",
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
+            } else {
+                // Category View Header (Back Button)
+                IconButton(
+                    onClick = { onBackClick?.invoke() },
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .statusBarsPadding()
+                        .padding(top = 8.dp, start = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
+                    )
+                }
             }
-        }
-        
-        if (uiState.showAdConfirmation) {
-            AdConfirmationDialog(
-                isAdReady = uiState.isRewardedAdReady,
-                onConfirm = {
-                    onEvent(FeedEvent.ToggleAdConfirmation(false))
-                    val currentActivity = activity
-                    if (currentActivity != null) {
-                        onEvent(FeedEvent.WatchRewardedAd(currentActivity))
-                    } else {
-                        // No Activity in this composition (shouldn't normally happen) -
-                        // surface the same "not available" feedback rather than doing nothing.
-                        scope.launch {
-                            snackbarHostState.showSnackbar(adNotAvailableMessage)
+
+            // Out of Coins: a single AdConfirmationDialog is the entire prompt (see
+            // FeedViewModel.observeRewardsData - showAdConfirmation mirrors insufficientCoins
+            // directly, so no separate overlay/tap is needed to reveal it). VerticalReelsPager
+            // already reads uiState.insufficientCoins directly to disable swiping and pause
+            // playback, independent of this dialog's visibility, so the feed stays gated even
+            // once the dialog itself closes on CTA tap.
+            if (uiState.showAdConfirmation) {
+                AdConfirmationDialog(
+                    rewardAmount = uiState.coinUnlockRewardAmount,
+                    isAdReady = uiState.isRewardedAdReady,
+                    onConfirm = {
+                        // Unconditional, not gated on the ad actually succeeding - this is what
+                        // makes it safe for the dialog itself to have no Cancel/dismiss path of
+                        // its own (see AdConfirmationDialog's doc comment). The dialog is
+                        // already closed by the time WatchRewardedAd's outcome is known.
+                        onEvent(FeedEvent.ToggleAdConfirmation(false))
+                        val currentActivity = activity
+                        if (currentActivity != null) {
+                            onEvent(FeedEvent.WatchRewardedAd(currentActivity))
+                        } else {
+                            // No Activity in this composition (shouldn't normally happen) -
+                            // surface the same "not available" feedback rather than doing nothing.
+                            scope.launch {
+                                snackbarHostState.showSnackbar(adNotAvailableMessage)
+                            }
                         }
                     }
-                },
-                onDismiss = {
-                    onEvent(FeedEvent.ToggleAdConfirmation(false))
-                }
+                )
+            }
+
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.align(Alignment.BottomCenter)
             )
         }
-        
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
+
+        if (!isCategoryView) {
+            // Home only, matching the coin-balance-indicator-vs-back-button split above.
+            // Sits below the weighted video Box, not layered on it - see the comment on the
+            // outer Column for why. Fixed AdSize.BANNER (320x50), not AdBannerView's default
+            // adaptive full-width size - this screen is a full-bleed video feed, so a
+            // small/compact banner belongs here instead of a dominant full-width one.
+            // AdBannerView itself logs the actual load attempt/success/failure under the
+            // "AdDebug" tag; this line just confirms the Home banner call site is reached
+            // with the size it's asking for.
+            Log.d("AdDebug", "ReelsFeedScreen (Home): requesting banner ad, adSize=BANNER (320x50)")
+            AdBannerView(
+                adUnitId = AdConstants.BANNER_FALLBACK_UNIT_ID,
+                isInitialized = uiState.isAdInitialized,
+                modifier = Modifier.background(Color.Black),
+                adSize = AdSize.BANNER
+            )
+        }
     }
 }
