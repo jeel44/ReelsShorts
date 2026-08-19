@@ -51,33 +51,43 @@ fun VerticalStoriesPager(
     val items = remember(stories, adConfig) { stories.map(FeedItem::StoryItem).withAdSlots(adConfig) }
     val pagerState = rememberPagerState(pageCount = { items.size })
 
-    // Track the page we are CURRENTLY on to detect successful swipes AWAY.
-    var lastSettledPage by remember { mutableIntStateOf(0) }
+    // Track the KEY (FeedItem.key - story.id/slotId, stable across list mutations) of the page
+    // we are CURRENTLY on to detect successful swipes AWAY - NOT its index. See
+    // [VerticalReelsPager]'s identical lastSettledKey for the full explanation: [items] is
+    // rebuilt one entry shorter every time StoriesViewModel's watched-filter removes a
+    // just-watched story, which shifts every later item's index down by one and makes
+    // VerticalPager's key-based reflow re-fire this effect a second time for one physical swipe.
+    // Comparing by key instead of index makes that reflow a no-op instead of misattributing a
+    // second StorySwiped to whatever story now occupies the stale index.
+    var lastSettledKey by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(pagerState.settledPage) {
         if (items.isNotEmpty()) {
             val currentPage = pagerState.settledPage
+            val currentKey = items.getOrNull(currentPage)?.key
 
             // TEMP DIAGNOSTIC (CoinDebug) - logs every run of this effect, not just when it
-            // actually fires StorySwiped, so a run where the page-change guard fails is visible too.
-            val previousItemForLog = items.getOrNull(lastSettledPage)
+            // actually fires StorySwiped, so a run where the key-change guard fails is visible too.
             Log.d(
                 "CoinDebug",
-                "[Stories] pager effect run: settledPage=$currentPage lastSettledPage=$lastSettledPage " +
-                    "previousItem=${previousItemForLog?.javaClass?.simpleName} " +
-                    "previousStoryId=${(previousItemForLog as? FeedItem.StoryItem)?.story?.id} " +
-                    "isStoryItemCheck=${previousItemForLog is FeedItem.StoryItem}"
+                "[Stories] pager effect run: settledPage=$currentPage currentKey=$currentKey " +
+                    "lastSettledKey=$lastSettledKey"
             )
 
-            // If we settled on a NEW page, it means the user successfully swiped AWAY from the
-            // last one. Coins are only consumed for swiping away from an actual story - swiping
-            // past an ad page doesn't fire StoriesEvent.StorySwiped at all.
-            if (currentPage != lastSettledPage) {
-                val previousItem = items.getOrNull(lastSettledPage)
-                if (previousItem is FeedItem.StoryItem) {
-                    onEvent(StoriesEvent.StorySwiped(previousItem.story.id))
+            // If we settled on a page with a DIFFERENT key, the user successfully swiped AWAY
+            // from the last one - see lastSettledKey's doc comment for why this is keyed rather
+            // than indexed. Coins are only consumed for swiping away from an actual story -
+            // swiping past an ad page doesn't fire StoriesEvent.StorySwiped at all, and the very
+            // first settle (lastSettledKey still null) never charges anything either.
+            if (currentKey != null && currentKey != lastSettledKey) {
+                val previousKey = lastSettledKey
+                if (previousKey != null) {
+                    val previousItem = items.firstOrNull { it.key == previousKey }
+                    if (previousItem is FeedItem.StoryItem) {
+                        onEvent(StoriesEvent.StorySwiped(previousItem.story.id))
+                    }
                 }
-                lastSettledPage = currentPage
+                lastSettledKey = currentKey
             }
         }
     }
