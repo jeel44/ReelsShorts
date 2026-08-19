@@ -45,6 +45,17 @@ object AdConstants {
     /** App Open ad shown on cold/warm app start. */
     const val APP_OPEN_UNIT_ID = "ca-app-pub-3940256099942544/9257395921"
 
+    /**
+     * Minimum time between two App Open ad shows - enforced in
+     * [reelsdrama.freedrama.videosdrama.core.ads.AppOpenAdManager.show]. Not an AdMob ID like the
+     * rest of this object, but kept here anyway (per its own doc, "every AdMob identifier...
+     * one per placement") since it's App Open's own tunable and this is where a future adjustment
+     * would look for it first. Exists specifically for the foreground-return trigger
+     * ([reelsdrama.freedrama.videosdrama.core.ads.AppOpenAdForegroundTrigger]) - without it, a
+     * user toggling apps would see an App Open ad on every single return.
+     */
+    const val APP_OPEN_MIN_INTERVAL_MS = 4 * 60 * 1000L
+
     /** Banner ad, used as a fallback wherever native isn't used. */
     const val BANNER_FALLBACK_UNIT_ID = "ca-app-pub-3940256099942544/9214589741"
 }
