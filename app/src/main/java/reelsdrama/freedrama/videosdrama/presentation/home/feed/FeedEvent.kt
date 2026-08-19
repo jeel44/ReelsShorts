@@ -12,4 +12,13 @@ sealed interface FeedEvent {
 
     /** UI has shown [FeedUiState.rewardedAdFeedback] - clear it so it doesn't repeat. */
     data object ConsumeRewardedAdFeedback : FeedEvent
+
+    /**
+     * This screen (its NavBackStackEntry) just became resumed again - fired on first display
+     * and on every return trip from another tab (e.g. Rewards). See
+     * [reelsdrama.freedrama.videosdrama.presentation.home.feed.FeedViewModel.recheckCoinBalance]
+     * for why this needs its own explicit recheck rather than relying on the coin-balance flow
+     * alone.
+     */
+    data object ScreenResumed : FeedEvent
 }

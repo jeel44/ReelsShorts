@@ -36,6 +36,8 @@
 
     <!-- Video Player -->
     <string name="player_speed_2x">2× Speed</string>
+    <string name="player_error_message">Couldn\'t load this video</string>
+    <string name="player_error_retry">Tap to retry</string>
 
     <!-- Interaction -->
     <string name="comment_placeholder">Add a comment&#8230;</string>

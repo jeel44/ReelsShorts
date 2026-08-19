@@ -67,6 +67,20 @@ class VideoPlayerManager @Inject constructor(
         }
     }
 
+    /**
+     * Retries loading the current media item for [videoId]'s already-created player, after a
+     * playback error (see [reelsdrama.freedrama.videosdrama.core.player.VideoPlayer]'s
+     * `onPlayerError` handling). Calls [ExoPlayer.prepare] again on the SAME cached instance -
+     * ExoPlayer's own documented recovery path: a player that has moved to an error state
+     * re-attempts loading its current [MediaItem] when [ExoPlayer.prepare] is called again, so
+     * this reuses [getPlayer]'s own load call rather than rebuilding a player/[MediaItem] from
+     * scratch. No-op if [videoId] has no cached player (e.g. already released via
+     * [stopAndRelease]).
+     */
+    fun retry(videoId: String) {
+        players[videoId]?.prepare()
+    }
+
     fun play(videoId: String) {
         if (currentVideoId != videoId) {
             currentVideoId?.let { players[it]?.pause() }

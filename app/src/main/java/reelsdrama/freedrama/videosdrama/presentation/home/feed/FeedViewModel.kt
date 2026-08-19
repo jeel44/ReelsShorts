@@ -1,6 +1,7 @@
 package reelsdrama.freedrama.videosdrama.presentation.home.feed
 
 import android.app.Activity
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -93,12 +94,37 @@ class FeedViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
-        // 2. Observe watched reels for metadata
+        // 2. Observe watched reels - re-derives FeedUiState.videos from allFetchedVideos every
+        // time this set changes, not just watchedVideoIds alone. See applyWatchedFilter's doc
+        // comment for why this has to be reactive rather than a one-time fetch-time filter.
         rewardsRepository.getWatchedReelIds()
-            .onEach { watchedIds ->
-                _uiState.update { it.copy(watchedVideoIds = watchedIds) }
-            }
+            .onEach { watchedIds -> applyWatchedFilter(watchedIds) }
             .launchIn(viewModelScope)
+    }
+
+    /**
+     * Re-derives [FeedUiState.videos] (and [FeedUiState.watchedVideoIds]) from [allFetchedVideos]
+     * filtered against the CURRENT [watchedIds] - called every time
+     * [RewardsRepository.getWatchedReelIds] emits (see [observeRewardsData]), and again after
+     * every fetch in [fetchMoreUntilUnseenFound]. [FeedUiState.videos] must never be built from a
+     * one-time snapshot alone: [FeedEvent.ReelSwiped] can mark a video watched at any moment
+     * outside of a fetch (no new fetch happens just because the user swiped past something), and
+     * [reelsdrama.freedrama.videosdrama.presentation.home.feed.components.VerticalReelsPager] is
+     * fully disposed and recomposed from scratch - restarting at page 0 - every time
+     * [reelsdrama.freedrama.videosdrama.presentation.home.feed.ReelsFeedScreen]'s tab switcher
+     * leaves and re-enters the Videos tab (this [FeedViewModel] itself survives that switch, only
+     * the pager composable doesn't). Without re-deriving [FeedUiState.videos] on every watched-set
+     * change, a user re-entering this tab after already swiping through it once would land page 0
+     * back on an already-watched video: its swipe-away event still fires correctly, but
+     * [onEvent]'s own `isWatched` guard then silently skips the coin deduction.
+     */
+    private fun applyWatchedFilter(watchedIds: Set<String>) {
+        _uiState.update {
+            it.copy(
+                videos = allFetchedVideos.filter { video -> video.id !in watchedIds },
+                watchedVideoIds = watchedIds
+            )
+        }
     }
 
     /**
@@ -169,6 +195,13 @@ class FeedViewModel @Inject constructor(
                 val isProcessing = processingVideoIds.contains(videoId)
                 val isWatched = _uiState.value.watchedVideoIds.contains(videoId)
 
+                // TEMP DIAGNOSTIC (CoinDebug)
+                Log.d(
+                    "CoinDebug",
+                    "[Video] ReelSwiped received: videoId=$videoId isProcessing=$isProcessing " +
+                        "isWatched=$isWatched guardPassed=${!isProcessing && !isWatched}"
+                )
+
                 // Every successful swipeaway = -1 coin. No watch time requirement.
                 if (!isProcessing && !isWatched) {
                     processingVideoIds.add(videoId)
@@ -189,6 +222,40 @@ class FeedViewModel @Inject constructor(
             }
             is FeedEvent.ConsumeRewardedAdFeedback -> {
                 _uiState.update { it.copy(rewardedAdFeedback = null) }
+            }
+            is FeedEvent.ScreenResumed -> {
+                recheckCoinBalance()
+            }
+        }
+    }
+
+    /**
+     * Re-derives [FeedUiState.insufficientCoins]/[FeedUiState.showAdConfirmation] straight from
+     * the actual current coin balance, independent of [observeRewardsData]'s ongoing collector.
+     *
+     * That collector only fires on a genuine new emission from [RewardsRepository.getCoinBalance]
+     * - i.e. an actual DataStore write - not just because this screen became visible again. If
+     * the user leaves this screen after a zero-balance attempt that granted nothing (a CTA tap
+     * whose ad was dismissed/unavailable, or simply navigating away with the dialog already
+     * closed) and no balance-changing write happens while they're away (e.g. they bounce off
+     * Rewards without earning anything), returning here fires no new emission at all - the
+     * balance is still 0 -> 0, nothing wrote to DataStore - so [showAdConfirmation] would stay
+     * stuck at whatever it was left at (false) even though the user is still exactly as broke as
+     * when they left. FeedViewModel/its uiState survive this round trip untouched (Home is kept
+     * alive via popUpTo(saveState = true)/restoreState = true in MainScreen's tab-switch
+     * pattern), so nothing else naturally re-evaluates this on the way back either.
+     *
+     * Called on every [FeedEvent.ScreenResumed] (see
+     * [reelsdrama.freedrama.videosdrama.presentation.home.feed.ReelsFeedScreen]'s
+     * LifecycleResumeEffect) so the dialog reliably reopens on each fresh visit while still
+     * broke, not just the first - mirroring the coin-balance flow's own derivation above.
+     */
+    private fun recheckCoinBalance() {
+        viewModelScope.launch {
+            val balance = rewardsRepository.getCoinBalance().first()
+            val insufficientCoins = balance <= 0
+            _uiState.update {
+                it.copy(insufficientCoins = insufficientCoins, showAdConfirmation = insufficientCoins)
             }
         }
     }
@@ -259,9 +326,11 @@ class FeedViewModel @Inject constructor(
             attempts++
 
             if (newUnseen.isNotEmpty()) {
-                _uiState.update { state ->
-                    state.copy(videos = allFetchedVideos.filter { it.id !in watchedIds })
-                }
+                // Routes through the same re-derivation applyWatchedFilter's own reactive
+                // collector uses, rather than a one-off state.copy here - see its doc comment.
+                // watchedIds itself is untouched: still the one-time snapshot this loop's
+                // newUnseen/unseenAdded pagination decision above is built on.
+                applyWatchedFilter(watchedIds)
             }
         }
     }

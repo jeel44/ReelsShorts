@@ -147,6 +147,12 @@ class RewardsRepositoryImpl @Inject constructor(
         var success = false
         dataStore.edit { prefs ->
             val consumedReels = prefs[PreferencesKeys.CONSUMED_REELS] ?: emptySet()
+            // TEMP DIAGNOSTIC (CoinDebug) - covers BOTH the story and video paths, since this is
+            // the single shared function both StoriesViewModel and FeedViewModel call.
+            Log.d(
+                "CoinDebug",
+                "[consumeCoinForReel] id=$videoId alreadyConsumed=${consumedReels.contains(videoId)}"
+            )
             if (consumedReels.contains(videoId)) {
                 success = true
                 // If it was already consumed, ensure it's marked as watched as well
@@ -158,6 +164,8 @@ class RewardsRepositoryImpl @Inject constructor(
             }
 
             val currentBalance = prefs[PreferencesKeys.COIN_BALANCE] ?: 0
+            // TEMP DIAGNOSTIC (CoinDebug)
+            Log.d("CoinDebug", "[consumeCoinForReel] id=$videoId currentBalance=$currentBalance")
             if (currentBalance > 0) {
                 // Deduct 1 coin
                 prefs[PreferencesKeys.COIN_BALANCE] = currentBalance - 1
@@ -191,6 +199,8 @@ class RewardsRepositoryImpl @Inject constructor(
                 success = false
             }
         }
+        // TEMP DIAGNOSTIC (CoinDebug)
+        Log.d("CoinDebug", "[consumeCoinForReel] id=$videoId finalSuccess=$success")
         return success
     }
 

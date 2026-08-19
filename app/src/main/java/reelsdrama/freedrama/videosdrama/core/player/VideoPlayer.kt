@@ -1,5 +1,6 @@
 package reelsdrama.freedrama.videosdrama.core.player
 
+import android.util.Log
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.annotation.OptIn
@@ -16,12 +17,14 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
 import reelsdrama.freedrama.videosdrama.core.constants.PlayerConstants
 import reelsdrama.freedrama.videosdrama.core.player.components.PlayPauseOverlay
+import reelsdrama.freedrama.videosdrama.core.player.components.PlaybackErrorOverlay
 import reelsdrama.freedrama.videosdrama.core.player.components.SpeedBadge
 import reelsdrama.freedrama.videosdrama.core.player.components.VideoProgressBar
 import reelsdrama.freedrama.videosdrama.core.player.components.VideoShimmer
@@ -48,6 +51,11 @@ fun VideoPlayer(
     var isPlaying by remember { mutableStateOf(player.isPlaying) }
     var playbackSpeed by remember { mutableStateOf(PlayerConstants.DEFAULT_SPEED) }
     var progress by remember { mutableStateOf(0f) }
+    // True once onPlayerError fires - a genuine failure state, not just "still loading forever"
+    // (isFirstFrameRendered staying false with no error was the actual bug: VideoShimmer alone
+    // can't distinguish "still buffering" from "will never succeed"). See PlaybackErrorOverlay's
+    // doc comment.
+    var hasError by remember { mutableStateOf(false) }
 
     // Position tracking for progress bar - Only poll when playing to save CPU/Battery
     LaunchedEffect(player, isPlaying) {
@@ -74,6 +82,22 @@ fun VideoPlayer(
 
             override fun onRenderedFirstFrame() {
                 isFirstFrameRendered = true
+            }
+
+            // Previously unhandled entirely - a playback failure (e.g. the video's source host
+            // being unreachable) was completely swallowed from the app's perspective, leaving
+            // VideoShimmer visible forever with no indication anything went wrong. Logged here so
+            // a future real outage leaves a diagnostic trail, instead of being silently invisible
+            // the way this one was.
+            override fun onPlayerError(error: PlaybackException) {
+                Log.e(
+                    TAG,
+                    "onPlayerError for videoId=${video.id}, url=${video.videoUrl}: " +
+                        "${error.errorCodeName} - ${error.message}",
+                    error
+                )
+                hasError = true
+                isBuffering = false
             }
         }
         player.addListener(listener)
@@ -125,8 +149,22 @@ fun VideoPlayer(
             update = { it.player = player }
         )
 
-        // Shimmer Loading / Thumbnail Placeholder
-        VideoShimmer(visible = !isFirstFrameRendered)
+        // Shimmer Loading / Thumbnail Placeholder - hidden once an error is showing instead
+        // (PlaybackErrorOverlay below takes over), so the two never stack on top of each other.
+        VideoShimmer(visible = !isFirstFrameRendered && !hasError)
+
+        // Playback error - see PlaybackErrorOverlay's doc comment. Retry re-calls
+        // VideoPlayerManager's own prepare() path on this same cached player instance - no
+        // second load/prepare path is built here.
+        PlaybackErrorOverlay(
+            visible = hasError,
+            onRetry = {
+                hasError = false
+                isBuffering = true
+                playerManager.retry(video.id)
+            },
+            modifier = Modifier.fillMaxSize()
+        )
 
         // Top Progress Bar
         VideoProgressBar(
@@ -147,3 +185,5 @@ fun VideoPlayer(
         )
     }
 }
+
+private const val TAG = "PlayerDebug"
