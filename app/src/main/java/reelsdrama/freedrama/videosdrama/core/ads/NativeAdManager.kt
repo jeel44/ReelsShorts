@@ -27,7 +27,7 @@ import javax.inject.Singleton
  * A single-slot cache per ad unit ID (like the other managers) is correct here, not a queue:
  * the feed only ever has at most one native-ad page inside the pager's live composition window
  * (`beyondViewportPageCount = 1`) at a time, since ad slots are spaced every 5 reels apart - see
- * [reelsdrama.freedrama.videosdrama.presentation.home.feed.FeedItem.withNativeAdSlots].
+ * [reelsdrama.freedrama.videosdrama.presentation.home.feed.FeedItem.withAdSlots].
  *
  * Callers must not invoke [preload] or [take] until [AdInitializer.isInitialized] is true.
  */

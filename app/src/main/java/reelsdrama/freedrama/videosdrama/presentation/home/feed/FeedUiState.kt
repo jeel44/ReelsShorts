@@ -2,6 +2,7 @@ package reelsdrama.freedrama.videosdrama.presentation.home.feed
 
 import androidx.compose.runtime.Immutable
 import reelsdrama.freedrama.videosdrama.core.ads.RewardedAdFeedback
+import reelsdrama.freedrama.videosdrama.domain.model.AdConfig
 import reelsdrama.freedrama.videosdrama.presentation.home.model.Video
 
 @Immutable
@@ -25,11 +26,13 @@ data class FeedUiState(
      */
     val coinUnlockRewardAmount: Int = DEFAULT_COIN_UNLOCK_REWARD_AMOUNT,
     val rewardedAdFeedback: RewardedAdFeedback? = null,
-    /** Mirrors [reelsdrama.freedrama.videosdrama.core.ads.AdInitializer.isInitialized] so
-     * the banner ad at the bottom of the feed can gate its load without needing its own
-     * ViewModel (see the [reelsdrama.freedrama.videosdrama.presentation.components.AdBannerView]
-     * overload that takes this directly). */
-    val isAdInitialized: Boolean = false
+    /**
+     * Mirrors [reelsdrama.freedrama.videosdrama.domain.repository.AdConfigRepository.getAdConfig]
+     * so [reelsdrama.freedrama.videosdrama.presentation.home.feed.components.VerticalReelsPager]
+     * can decide each every-3-reels slot's ad type. Defaults to [AdConfig]'s own default
+     * (native-only) for the same reason that default exists - see [AdConfig]'s doc comment.
+     */
+    val adConfig: AdConfig = AdConfig()
 )
 
 /** See [FeedUiState.coinUnlockRewardAmount]'s doc comment. */

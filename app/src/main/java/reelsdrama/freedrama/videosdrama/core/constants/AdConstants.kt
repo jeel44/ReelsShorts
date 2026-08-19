@@ -37,7 +37,7 @@ object AdConstants {
     /**
      * Full-screen native-advanced ad shown as its own page in the reels feed every 5 reels -
      * Google's official native-advanced test unit. See
-     * [reelsdrama.freedrama.videosdrama.presentation.home.feed.FeedItem.withNativeAdSlots] and
+     * [reelsdrama.freedrama.videosdrama.presentation.home.feed.FeedItem.withAdSlots] and
      * [reelsdrama.freedrama.videosdrama.presentation.home.feed.components.FullScreenNativeAdPage].
      */
     const val NATIVE_FEED_UNIT_ID = "ca-app-pub-3940256099942544/2247696110"
@@ -58,4 +58,13 @@ object AdConstants {
 
     /** Banner ad, used as a fallback wherever native isn't used. */
     const val BANNER_FALLBACK_UNIT_ID = "ca-app-pub-3940256099942544/9214589741"
+
+    /**
+     * MEDIUM_RECTANGLE (300x250) "MREC" ad shown as a centered ad card in its own reels-feed
+     * pager page - see
+     * [reelsdrama.freedrama.videosdrama.presentation.home.feed.components.FullScreenMediumRectangleAdPage]
+     * and [reelsdrama.freedrama.videosdrama.presentation.home.feed.MEDIUM_RECTANGLE_AD_EVERY_N_REELS].
+     * Google's official medium-rectangle test unit.
+     */
+    const val MEDIUM_RECTANGLE_UNIT_ID = "ca-app-pub-3940256099942544/6300978111"
 }

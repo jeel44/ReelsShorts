@@ -30,12 +30,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import reelsdrama.freedrama.videosdrama.R
-import reelsdrama.freedrama.videosdrama.presentation.home.model.Video
 
+/**
+ * Shared by [reelsdrama.freedrama.videosdrama.presentation.home.feed.ReelCard] and
+ * [reelsdrama.freedrama.videosdrama.presentation.home.feed.StoryCard] - takes the id/caption
+ * primitives it actually needs rather than a
+ * [reelsdrama.freedrama.videosdrama.presentation.home.model.Video] directly, so both a video
+ * reel and a text story can share this one sheet instead of forking a second copy.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShareBottomSheet(
-    video: Video,
+    contentId: String,
+    caption: String,
     onDismissRequest: () -> Unit,
     viewModel: ShareViewModel = hiltViewModel(),
     sheetState: SheetState = rememberModalBottomSheetState()
@@ -87,7 +94,7 @@ fun ShareBottomSheet(
                         ShareOptionItem(
                             name = stringResource(R.string.copy_link),
                             icon = Icons.Default.ContentCopy,
-                            onClick = { viewModel.onEvent(ShareEvent.OnCopyLink(video.id)) }
+                            onClick = { viewModel.onEvent(ShareEvent.OnCopyLink(contentId)) }
                         )
                     }
 
@@ -95,8 +102,8 @@ fun ShareBottomSheet(
                         ShareOptionItem(
                             name = app.name,
                             // In a real app we'd load the actual app icon
-                            icon = Icons.Default.MoreHoriz, 
-                            onClick = { viewModel.onEvent(ShareEvent.OnAppClick(app.packageName, video.id, video.caption)) }
+                            icon = Icons.Default.MoreHoriz,
+                            onClick = { viewModel.onEvent(ShareEvent.OnAppClick(app.packageName, contentId, caption)) }
                         )
                     }
 
@@ -104,7 +111,7 @@ fun ShareBottomSheet(
                         ShareOptionItem(
                             name = stringResource(R.string.more),
                             icon = Icons.Default.MoreHoriz,
-                            onClick = { viewModel.onEvent(ShareEvent.OnMoreClick(video.id, video.caption)) }
+                            onClick = { viewModel.onEvent(ShareEvent.OnMoreClick(contentId, caption)) }
                         )
                     }
                 }

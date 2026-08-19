@@ -64,15 +64,21 @@ fun ReelCard(
 
         // 3. Content Overlays (UI Info & Actions)
         VideoInfoOverlay(
-            video = video,
+            username = video.username,
+            isVerified = video.isVerified,
+            caption = video.caption,
+            hashtags = video.hashtags,
+            audioLabel = video.musicName,
+            viewCount = video.viewCount,
             modifier = Modifier.align(Alignment.BottomStart)
         )
 
         VideoSideActionBar(
-            video = video,
             isLiked = isLiked,
             likeCount = likeCount,
-            onLikeClick = { 
+            commentCount = video.commentCount,
+            shareCount = video.shareCount,
+            onLikeClick = {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 likeViewModel.onEvent(LikeButtonEvent.OnLikeClick(video.id)) 
             },
@@ -98,7 +104,8 @@ fun ReelCard(
 
         if (showShare) {
             ShareBottomSheet(
-                video = video,
+                contentId = video.id,
+                caption = video.caption,
                 onDismissRequest = { showShare = false }
             )
         }

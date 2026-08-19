@@ -23,12 +23,24 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import reelsdrama.freedrama.videosdrama.presentation.home.model.Video
 import reelsdrama.freedrama.videosdrama.presentation.interactions.like.LikeButton
 
+/**
+ * Caption/action-rail overlay shared by [reelsdrama.freedrama.videosdrama.presentation.home.feed.ReelCard]
+ * (a [reelsdrama.freedrama.videosdrama.presentation.home.model.Video]'s fields) and
+ * [reelsdrama.freedrama.videosdrama.presentation.home.feed.StoryCard] (a
+ * [reelsdrama.freedrama.videosdrama.presentation.home.model.Story]'s matching fields) - takes
+ * primitives rather than either model type directly so both feeds can bind to it without a
+ * second, forked copy of this composable.
+ */
 @Composable
 fun VideoInfoOverlay(
-    video: Video,
+    username: String,
+    isVerified: Boolean,
+    caption: String,
+    hashtags: List<String>,
+    audioLabel: String,
+    viewCount: String,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -45,12 +57,12 @@ fun VideoInfoOverlay(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = "@${video.username}",
+                text = "@$username",
                 color = Color.White,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
-            if (video.isVerified) {
+            if (isVerified) {
                 Spacer(modifier = Modifier.width(4.dp))
                 Icon(
                     imageVector = Icons.Rounded.CheckCircle,
@@ -60,21 +72,21 @@ fun VideoInfoOverlay(
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.height(8.dp))
-        
+
         Text(
-            text = video.caption,
+            text = caption,
             color = Color.White,
             style = MaterialTheme.typography.bodyMedium,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
-        
+
         Spacer(modifier = Modifier.height(4.dp))
-        
+
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            video.hashtags.forEach { hashtag ->
+            hashtags.forEach { hashtag ->
                 Text(
                     text = hashtag,
                     color = Color.White,
@@ -83,9 +95,9 @@ fun VideoInfoOverlay(
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.height(12.dp))
-        
+
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = Icons.Default.MusicNote,
@@ -95,14 +107,14 @@ fun VideoInfoOverlay(
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = video.musicName,
+                text = audioLabel,
                 color = Color.White,
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
             )
-            
+
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.Visibility,
@@ -112,7 +124,7 @@ fun VideoInfoOverlay(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = video.viewCount,
+                    text = viewCount,
                     color = Color.White.copy(alpha = 0.8f),
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -121,11 +133,13 @@ fun VideoInfoOverlay(
     }
 }
 
+/** See [VideoInfoOverlay]'s doc comment - same primitives-not-model sharing rationale. */
 @Composable
 fun VideoSideActionBar(
-    video: Video,
     isLiked: Boolean,
     likeCount: String,
+    commentCount: String,
+    shareCount: String,
     onLikeClick: () -> Unit,
     onCommentClick: () -> Unit,
     onShareClick: () -> Unit,
@@ -166,13 +180,13 @@ fun VideoSideActionBar(
         
         ActionButton(
             icon = Icons.AutoMirrored.Rounded.Comment,
-            label = video.commentCount,
+            label = commentCount,
             onClick = onCommentClick
         )
-        
+
         ActionButton(
             icon = Icons.Default.Share,
-            label = video.shareCount,
+            label = shareCount,
             onClick = onShareClick
         )
         

@@ -98,16 +98,19 @@ fun AdBannerView(
 
 /**
  * Overload for screens whose own ViewModel already has [AdInitializer] access and mirrors it
- * into its UI state (e.g. `FeedViewModel`/`FeedUiState.isAdInitialized`, same pattern
- * `RewardedAdManager`/`InterstitialAdManager` consumers use elsewhere in this app) - lets them
- * pass that existing signal straight through instead of spinning up the standalone
- * [AdBannerViewModel] bridge above, which exists only for ViewModel-less screens that have
- * nothing else to source it from.
+ * into its UI state (same pattern `RewardedAdManager`/`InterstitialAdManager` consumers use
+ * elsewhere in this app) - lets them pass that existing signal straight through instead of
+ * spinning up the standalone [AdBannerViewModel] bridge above, which exists only for
+ * ViewModel-less screens that have nothing else to source it from.
+ *
+ * Currently has no call site anywhere in the app - the reels feed's Home-screen bottom banner,
+ * this overload's original consumer, has been removed. Kept as the general-purpose entry point
+ * for any future ViewModel-owning screen that wants a fixed-size (or adaptive) banner strip.
  *
  * @param adSize Fixed size to request instead of the default full-width adaptive size below.
- * Pass e.g. [AdSize.BANNER] (a small 320x50 standard banner) for placements - like the Home
- * feed, which overlays a full-bleed video - where a full-width adaptive banner would be too
- * visually dominant. Leave null to keep the existing adaptive full-width behavior.
+ * Pass e.g. [AdSize.BANNER] (a small 320x50 standard banner) for placements over a full-bleed
+ * video, where a full-width adaptive banner would be too visually dominant. Leave null to keep
+ * the existing adaptive full-width behavior.
  */
 @Composable
 fun AdBannerView(

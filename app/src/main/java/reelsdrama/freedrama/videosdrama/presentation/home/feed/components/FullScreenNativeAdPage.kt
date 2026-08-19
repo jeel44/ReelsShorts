@@ -69,7 +69,7 @@ class NativeAdSlotViewModel @Inject constructor(
  * like [reelsdrama.freedrama.videosdrama.presentation.home.feed.ReelCard] does for a real reel,
  * so the user swipes past it the same way instead of it appearing as a modal overlay on top of
  * one (that was the old interstitial's behavior; this replaces it - see
- * [reelsdrama.freedrama.videosdrama.presentation.home.feed.FeedItem.withNativeAdSlots]).
+ * [reelsdrama.freedrama.videosdrama.presentation.home.feed.FeedItem.withAdSlots]).
  *
  * While no ad is ready yet (SDK not initialized, or the load still in flight), shows
  * [AdBannerSkeletonLoader] full-screen - the same shimmer component

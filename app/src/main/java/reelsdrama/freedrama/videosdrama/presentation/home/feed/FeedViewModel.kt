@@ -14,6 +14,7 @@ import reelsdrama.freedrama.videosdrama.core.ads.RewardedAdOutcome
 import reelsdrama.freedrama.videosdrama.core.constants.AdConstants
 import reelsdrama.freedrama.videosdrama.core.constants.NetworkConstants
 import reelsdrama.freedrama.videosdrama.core.player.VideoPlayerManager
+import reelsdrama.freedrama.videosdrama.domain.repository.AdConfigRepository
 import reelsdrama.freedrama.videosdrama.domain.repository.RewardsRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -28,6 +29,7 @@ import javax.inject.Inject
 class FeedViewModel @Inject constructor(
     private val repository: FakeFeedRepository,
     private val rewardsRepository: RewardsRepository,
+    private val adConfigRepository: AdConfigRepository,
     private val adInitializer: AdInitializer,
     private val rewardedAdManager: RewardedAdManager,
     private val nativeAdManager: NativeAdManager,
@@ -52,19 +54,19 @@ class FeedViewModel @Inject constructor(
         loadInitialVideos()
         observeRewardedAdAvailability()
         preloadNativeAdWhenReady()
-        observeAdInitialization()
+        observeAdConfig()
     }
 
     /**
-     * Mirrors [AdInitializer.isInitialized] into [FeedUiState.isAdInitialized] so
-     * [reelsdrama.freedrama.videosdrama.presentation.components.AdBannerView] (the feed's
-     * bottom banner) can gate its load using this ViewModel's existing [AdInitializer]
-     * access, instead of the standalone `AdBannerViewModel` bridge built for screens that
-     * don't have a ViewModel of their own.
+     * Mirrors [AdConfigRepository.getAdConfig] into [FeedUiState.adConfig] so
+     * [reelsdrama.freedrama.videosdrama.presentation.home.feed.components.VerticalReelsPager]
+     * can decide each every-3-reels slot's ad type. The underlying Firebase listener is torn
+     * down automatically when [viewModelScope] is cancelled (see
+     * [reelsdrama.freedrama.videosdrama.data.repository.AdConfigRepositoryImpl]'s `awaitClose`).
      */
-    private fun observeAdInitialization() {
-        adInitializer.isInitialized
-            .onEach { initialized -> _uiState.update { it.copy(isAdInitialized = initialized) } }
+    private fun observeAdConfig() {
+        adConfigRepository.getAdConfig()
+            .onEach { adConfig -> _uiState.update { it.copy(adConfig = adConfig) } }
             .launchIn(viewModelScope)
     }
 
@@ -162,7 +164,7 @@ class FeedViewModel @Inject constructor(
 
     /**
      * Preloads the feed's full-screen native ad as soon as MobileAds finishes initializing, so
-     * the first ad slot ([FeedItem.withNativeAdSlots] inserts one every 5 reels) already has an
+     * the first ad slot ([FeedItem.withAdSlots] inserts one every 3 reels) already has an
      * ad sitting in [NativeAdManager]'s cache by the time the user swipes to it - see
      * [reelsdrama.freedrama.videosdrama.presentation.home.feed.components.FullScreenNativeAdPage]
      * for where it's actually taken and rendered. Unlike the rewarded ad, this ViewModel never
