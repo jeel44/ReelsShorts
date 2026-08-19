@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "780501857005",
+    "project_id": "stories-d67bf",
+    "storage_bucket": "stories-d67bf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:780501857005:android:42df38379e3c66380052e4",
+        "android_client_info": {
+          "package_name": "reelsdrama.freedrama.videosdrama"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB2lg2YnShHBbDaMGNBY7fDWndaM5eTjms"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

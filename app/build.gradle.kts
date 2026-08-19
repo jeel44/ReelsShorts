@@ -5,6 +5,9 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    // app/google-services.json is now in place (package reelsdrama.freedrama.videosdrama
+    // confirmed) — plugin active, generates FirebaseApp's default options from it at build time.
+    alias(libs.plugins.googleServices)
 }
 
 android {
@@ -99,6 +102,15 @@ dependencies {
     // OneSignal's own Android integration guide's Pre-Flight Checklist (this project already has
     // both for Firebase Realtime Database above, which is unrelated and unaffected).
     implementation(libs.onesignal)
+
+    // Firebase Realtime Database only — remotely controls the reels feed's every-3-reels ad-slot
+    // type (see AdConfigRepository). Not Remote Config; deliberately firebase-database only, no
+    // other Firebase product (Firebase removed the -ktx artifacts from the BOM in v34.0.0 — this
+    // base artifact now includes the Kotlin/Flow extensions that -ktx used to provide). Requires
+    // app/google-services.json + the google-services plugin (see this file's plugins block)
+    // before FirebaseDatabase actually works at runtime.
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.database)
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
