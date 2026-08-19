@@ -94,6 +94,12 @@ dependencies {
     // GMA Next-Gen SDK (AdMob) - foundation layer only, no ad-loading logic yet.
     implementation(libs.ads.mobile.sdk)
 
+    // OneSignal push notifications. Registers for FCM itself internally - deliberately does NOT
+    // need (or want) the Google Services plugin/google-services.json on its own account, per
+    // OneSignal's own Android integration guide's Pre-Flight Checklist (this project already has
+    // both for Firebase Realtime Database above, which is unrelated and unaffected).
+    implementation(libs.onesignal)
+
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
