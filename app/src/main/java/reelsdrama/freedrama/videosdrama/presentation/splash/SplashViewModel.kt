@@ -16,6 +16,7 @@ import reelsdrama.freedrama.videosdrama.core.ads.AppOpenAdManager
 import reelsdrama.freedrama.videosdrama.core.ads.AppOpenAdOutcome
 import reelsdrama.freedrama.videosdrama.core.constants.AdConstants
 import reelsdrama.freedrama.videosdrama.core.constants.AnimationConstants
+import reelsdrama.freedrama.videosdrama.core.referrer.InstallReferrerManager
 import reelsdrama.freedrama.videosdrama.domain.repository.RewardsRepository
 import javax.inject.Inject
 import kotlin.coroutines.resume
@@ -23,7 +24,8 @@ import kotlin.coroutines.resume
 @HiltViewModel
 class SplashViewModel @Inject constructor(
     private val rewardsRepository: RewardsRepository,
-    private val appOpenAdManager: AppOpenAdManager
+    private val appOpenAdManager: AppOpenAdManager,
+    private val installReferrerManager: InstallReferrerManager
 ) : ViewModel() {
 
     private val _navigationEvent = MutableSharedFlow<Unit>()
@@ -44,6 +46,15 @@ class SplashViewModel @Inject constructor(
      */
     fun startTimer(activity: Activity?) {
         viewModelScope.launch {
+            // Fire-and-forget: maybeSendInstallReferrer() launches on its own internal IO
+            // scope and returns immediately (same non-suspending shape as
+            // adInitializer.initialize()/oneSignalManager.initialize()), so this line adds
+            // zero delay here - it does NOT participate in this coroutine's timing at all.
+            // Deliberately not moved to App.onCreate (unlike those two): this fires from
+            // Splash per the intended wiring, is fully decoupled from SPLASH_DELAY_MS and
+            // the ad-ready wait below, and never blocks navigationEvent.
+            installReferrerManager.maybeSendInstallReferrer()
+
             // Read isFirstLaunch BEFORE initRewards() - initRewards() is what flips the
             // underlying flag to false on a fresh install, so the order matters.
             val isFirstLaunch = rewardsRepository.isFirstLaunch()

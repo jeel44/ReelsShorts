@@ -103,6 +103,10 @@ dependencies {
     // both for Firebase Realtime Database above, which is unrelated and unaffected).
     implementation(libs.onesignal)
 
+    // Google Play Install Referrer - used by InstallReferrerManager to attribute installs to
+    // ad clicks (click_id/fbclid/gclid) on first launch. See core/referrer/InstallReferrerManager.kt.
+    implementation(libs.installreferrer)
+
     // Firebase Realtime Database only — remotely controls the reels feed's every-3-reels ad-slot
     // type (see AdConfigRepository). Not Remote Config; deliberately firebase-database only, no
     // other Firebase product (Firebase removed the -ktx artifacts from the BOM in v34.0.0 — this

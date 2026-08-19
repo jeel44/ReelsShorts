@@ -27,6 +27,8 @@ googleServices = "4.4.4"
 # entry name="Android" -> channels.stable.version (checked at integration time, not guessed or
 # taken from the human-readable releases page - see OneSignal's sdk-ai-prompts android AI guide).
 oneSignal = "5.9.1"
+# Google Play Install Referrer API - latest stable per Play Console docs.
+installReferrer = "2.2"
 
 [libraries]
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
@@ -74,6 +76,7 @@ retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = 
 retrofit-kotlinx-serialization-converter = { group = "com.squareup.retrofit2", name = "converter-kotlinx-serialization", version.ref = "retrofit" }
 ads-mobile-sdk = { group = "com.google.android.libraries.ads.mobile.sdk", name = "ads-mobile-sdk", version.ref = "adsMobileSdk" }
 onesignal = { group = "com.onesignal", name = "OneSignal", version.ref = "oneSignal" }
+installreferrer = { group = "com.android.installreferrer", name = "installreferrer", version.ref = "installReferrer" }
 
 [plugins]
 androidApp = { id = "com.android.application", version.ref = "agp" }
